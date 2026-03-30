@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "skills": {
+    "flutter-building-layouts": {
+      "source": "flutter/skills",
+      "sourceType": "github",
+      "computedHash": "1010c7fbc41061aa1c7d215cbea36cb9ffbb851bd33aea2e4175f74215e7b602"
+    },
+    "flutter-handling-http-and-json": {
+      "source": "flutter/skills",
+      "sourceType": "github",
+      "computedHash": "6498a5ad946308535693782f6758bed1968ca68de67e0b972778c9b27df72ea0"
+    },
+    "flutter-implementing-navigation-and-routing": {
+      "source": "flutter/skills",
+      "sourceType": "github",
+      "computedHash": "7247406b26de6e3711bc654c8c1e09fb1abf21b8fc465174cef4ffb563726d3f"
+    },
+    "flutter-managing-state": {
+      "source": "flutter/skills",
+      "sourceType": "github",
+      "computedHash": "70a4099bf10906fa4e2c519b9408fea0776dca956c8bf833bf6b452022bade46"
+    },
+    "flutter-theming-apps": {
+      "source": "flutter/skills",
+      "sourceType": "github",
+      "computedHash": "03f05d2aaad597d1a74c2e82d127088a5a822da79e00e3e77dd65449c9db7f7b"
+    },
+    "full-output-enforcement": {
+      "source": "leonxlnx/taste-skill",
+      "sourceType": "github",
+      "computedHash": "524f7c7950c3fde726101613f630140411c7d080e63be718687f4b38f919be81"
+    },
+    "minimalist-ui": {
+      "source": "leonxlnx/taste-skill",
+      "sourceType": "github",
+      "computedHash": "7e88897e0371184e97a82b8d9ef080323c13f21eb067b58ef71eb05173a08ac2"
+    }
+  }
+}

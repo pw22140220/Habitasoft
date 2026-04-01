@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/biometric_preferences_service.dart';
+import '../../services/biometric_preferences_service.dart';
 
 // Pantalla para editar perfil del usuario
 class EditProfileScreen extends StatefulWidget {

@@ -5,7 +5,7 @@ import 'amenities_screen.dart';
 import 'notifications_screen.dart';
 import 'account_settings_screen.dart';
 import 'privacy_security_screen.dart';
-import '../services/biometric_preferences_service.dart';
+import '../../services/biometric_preferences_service.dart';
 
 // ==== PALETA DE COLORES (MISMO QUE HOME SCREEN) ====
 const Color topGreen = Color(0xFF0A896E);

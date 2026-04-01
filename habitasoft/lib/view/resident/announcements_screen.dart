@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:habitasoft/view/dashboard.dart';
-import 'package:habitasoft/view/profile_screen.dart';
+import 'dashboard.dart';
+import 'profile_screen.dart';
 
 // Pantalla para ver anuncios comunitarios del administrador
 class AnnouncementsScreen extends StatelessWidget {

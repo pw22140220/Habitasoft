@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:habitasoft/view/home_screen.dart';
+import 'package:habitasoft/view/auth/home_screen.dart';
 
 void main() {
   runApp(const MyApp());

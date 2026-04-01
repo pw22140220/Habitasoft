@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'edit_profile_screen.dart';
 import 'change_password_screen.dart';
-import 'home_screen.dart';
-import '../services/biometric_preferences_service.dart';
+import '../auth/home_screen.dart';
+import '../../services/biometric_preferences_service.dart';
 
 // Pantalla de Configuración de Cuenta - Con funcionalidades
 class AccountSettingsScreen extends StatefulWidget {

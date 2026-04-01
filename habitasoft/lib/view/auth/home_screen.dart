@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dashboard.dart';
-import '../services/auth_service.dart';
-import '../services/biometric_service.dart';
-import '../services/biometric_preferences_service.dart';
+import '../resident/dashboard.dart';
+import '../../services/auth_service.dart';
+import '../../services/biometric_service.dart';
+import '../../services/biometric_preferences_service.dart';
 import 'biometric_prompt_sheet.dart';
 
 class HomeScreen extends StatefulWidget {

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:habitasoft/view/profile_screen.dart';
-import 'package:habitasoft/view/amenities_screen.dart';
-import 'package:habitasoft/view/notifications_screen.dart';
-import 'package:habitasoft/view/qr_generation_screen.dart';
-import 'package:habitasoft/view/announcements_screen.dart';
-import 'package:habitasoft/view/payment_reminders_screen.dart';
+import 'profile_screen.dart';
+import 'amenities_screen.dart';
+import 'notifications_screen.dart';
+import 'qr_generation_screen.dart';
+import 'announcements_screen.dart';
+import 'payment_reminders_screen.dart';
 
 // ====== CONSTANTES DE DISEÑO ======
 const double kCardsOverlap = 33;

@@ -1,0 +1,170 @@
+import 'package:flutter/material.dart';
+
+// Pantalla de Configuración de Cuenta - Con funcionalidades
+class AccountSettingsScreen extends StatefulWidget {
+  const AccountSettingsScreen({super.key});
+
+  @override
+  State<AccountSettingsScreen> createState() => _AccountSettingsScreenState();
+}
+
+class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
+  bool _isDarkMode = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Configuración de Cuenta'),
+        backgroundColor: const Color(0xFF0A896E),
+        foregroundColor: Colors.white,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Sección: Perfil y Seguridad
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(
+                    Icons.person_outline,
+                    color: Color(0xFF555555),
+                  ),
+                  title: const Text(
+                    'Editar Perfil',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                  onTap: () {
+                    // TODO: Navegar a pantalla de edición de perfil
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Funcionalidad en desarrollo'),
+                        backgroundColor: Colors.blue,
+                      ),
+                    );
+                  },
+                ),
+                const Divider(height: 1, indent: 16, endIndent: 16),
+                ListTile(
+                  leading: const Icon(
+                    Icons.lock_outline,
+                    color: Color(0xFF555555),
+                  ),
+                  title: const Text(
+                    'Cambiar Contraseña',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                  onTap: () {
+                    // TODO: Navegar a pantalla de cambio de contraseña
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Funcionalidad en desarrollo'),
+                        backgroundColor: Colors.blue,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Sección: Apariencia
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: ListTile(
+              leading: const Icon(
+                Icons.dark_mode_outlined,
+                color: Color(0xFF555555),
+              ),
+              title: const Text(
+                'Modo Oscuro',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+              trailing: Switch(
+                value: _isDarkMode,
+                activeColor: const Color(0xFF0B64D8),
+                onChanged: (value) {
+                  setState(() => _isDarkMode = value);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        value
+                            ? 'Modo oscuro activado'
+                            : 'Modo oscuro desactivado',
+                      ),
+                      backgroundColor: Colors.blue,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // Botón de Eliminar Cuenta
+          Center(
+            child: TextButton.icon(
+              onPressed: () {
+                // TODO: Implementar eliminación de cuenta con confirmación
+                showDialog(
+                  context: context,
+                  builder:
+                      (context) => AlertDialog(
+                        title: const Text('Eliminar Cuenta'),
+                        content: const Text(
+                          '¿Estás seguro de que deseas eliminar tu cuenta? Esta acción no se puede deshacer.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cancelar'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Funcionalidad de eliminación en desarrollo',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              'Eliminar',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      ),
+                );
+              },
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              label: const Text(
+                'Eliminar Cuenta',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+}

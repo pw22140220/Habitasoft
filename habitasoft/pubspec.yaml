@@ -16,6 +16,8 @@ dependencies:
   http: ^1.1.0
   flutter_secure_storage: ^9.0.0  # la usaremos después para tokens
   table_calendar: ^3.0.9  # para calendario interactivo en amenities
+  url_launcher: ^6.2.2  # para abrir WhatsApp desde ayuda y soporte
+  local_auth: ^2.1.7  # para autenticación biométrica (huella/Face ID)
 
 dev_dependencies:
   flutter_test:

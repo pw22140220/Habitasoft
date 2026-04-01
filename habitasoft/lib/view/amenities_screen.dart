@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:table_calendar/table_calendar.dart';
 import 'dashboard.dart';
 import 'profile_screen.dart';
+import 'notifications_screen.dart';
 
-// ===== AZUL PRINCIPAL (MISMO QUE DASHBOARD/PROFILE) =====
-// Si quieres cambiar el color del header, SOLO modifica esta línea:
-const kPrimaryBlue = Color(0xFF0B64D8);
+// ====== CONSTANTES DE DISEÑO (MISMO QUE DASHBOARD) ======
+const double kCardsOverlap = 33;
+const double kBlueExtraHeight = 60;
+const Color kPrimaryGreen = Color(0xFF15806C);
+const Color kPrimaryBlue = Color(0xFF0B64D8);
+const Color kLightGray = Color(0xFFF5F6FA);
+const Color kCardShadow = Color(0x0A000000);
 // =======================================================
 
 class AmenitiesScreen extends StatefulWidget {
@@ -17,171 +23,206 @@ class AmenitiesScreen extends StatefulWidget {
 }
 
 class _AmenitiesScreenState extends State<AmenitiesScreen> {
-  int _selectedDay = 23; // día seleccionado visualmente (23 como en la imagen)
+  DateTime _selectedDay = DateTime.now(); // Día seleccionado en el calendario
+  DateTime _focusedDay = DateTime.now(); // Día enfocado en el calendario
+  CalendarFormat _calendarFormat =
+      CalendarFormat.month; // Formato del calendario
+
+  // Datos falsos para disponibilidad por día (renta por día completo)
+  final Map<DateTime, List<Map<String, dynamic>>> _mockAvailabilityData = {
+    DateTime.now(): [
+      {
+        'id': 1,
+        'title': 'Clubhouse',
+        'icon': Icons.home_outlined,
+        'timeRange': '7:00 am - 5:00 pm',
+        'isAvailable': true, // Disponible para renta
+      },
+      {
+        'id': 2,
+        'title': 'Swimming Pool',
+        'icon': Icons.pool_outlined,
+        'timeRange': '8:00 am - 8:00 pm',
+        'isAvailable': false, // Ya rentado
+      },
+    ],
+    DateTime.now().add(const Duration(days: 1)): [
+      {
+        'id': 1,
+        'title': 'Clubhouse',
+        'icon': Icons.home_outlined,
+        'timeRange': '9:00 am - 6:00 pm',
+        'isAvailable': false, // Ya rentado
+      },
+      {
+        'id': 2,
+        'title': 'Swimming Pool',
+        'icon': Icons.pool_outlined,
+        'timeRange': '7:00 am - 9:00 pm',
+        'isAvailable': true, // Disponible para renta
+      },
+    ],
+    DateTime.now().add(const Duration(days: 2)): [
+      {
+        'id': 1,
+        'title': 'Clubhouse',
+        'icon': Icons.home_outlined,
+        'timeRange': '8:00 am - 4:00 pm',
+        'isAvailable': true, // Disponible para renta
+      },
+      {
+        'id': 2,
+        'title': 'Swimming Pool',
+        'icon': Icons.pool_outlined,
+        'timeRange': '10:00 am - 7:00 pm',
+        'isAvailable': true, // Disponible para renta
+      },
+    ],
+  };
 
   @override
   Widget build(BuildContext context) {
+    // Obtener disponibilidad para el día seleccionado
+    final selectedDateKey = DateTime(
+      _selectedDay.year,
+      _selectedDay.month,
+      _selectedDay.day,
+    );
+    final availabilityForSelectedDay =
+        _mockAvailabilityData[selectedDateKey] ??
+        _mockAvailabilityData.values.first;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
-      // pasamos userName al bottom nav
+      backgroundColor: kLightGray,
       bottomNavigationBar: _AmenitiesBottomNavBar(userName: widget.userName),
       body: SafeArea(
-        child: Column(
-          children: [
-            const _AmenitiesHeader(),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    _CalendarSection(
-                      selectedDay: _selectedDay,
-                      onDayTap: (day) {
-                        setState(() => _selectedDay = day);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    const _BookableSlotsSection(),
-                    const SizedBox(height: 16),
-                  ],
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              _AmenitiesHeader(userName: widget.userName),
+              Transform.translate(
+                offset: const Offset(0, -kCardsOverlap),
+                child: _CalendarSection(
+                  selectedDay: _selectedDay,
+                  focusedDay: _focusedDay,
+                  calendarFormat: _calendarFormat,
+                  onDaySelected: (selectedDay, focusedDay) {
+                    setState(() {
+                      _selectedDay = selectedDay;
+                      _focusedDay = focusedDay;
+                    });
+                  },
+                  onFormatChanged: (format) {
+                    setState(() {
+                      _calendarFormat = format;
+                    });
+                  },
+                  onPageChanged: (focusedDay) {
+                    setState(() {
+                      _focusedDay = focusedDay;
+                    });
+                  },
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: kCardsOverlap),
+              _BookableSlotsSection(availability: availabilityForSelectedDay),
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ================== HEADER AZUL ==================
+// ================== HEADER MODERNO (ESTILO DASHBOARD) ==================
 
 class _AmenitiesHeader extends StatelessWidget {
-  const _AmenitiesHeader();
+  final String userName;
+
+  const _AmenitiesHeader({required this.userName});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 18),
+      padding: const EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 16,
+        bottom: kBlueExtraHeight,
+      ),
       decoration: const BoxDecoration(
         color: kPrimaryBlue,
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(24),
           bottomRight: Radius.circular(24),
         ),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          ),
-          const SizedBox(width: 4),
-          const Text(
-            'Amenities',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ================== SECCIÓN CALENDARIO ==================
-
-class _CalendarSection extends StatelessWidget {
-  final int selectedDay;
-  final ValueChanged<int> onDayTap;
-
-  const _CalendarSection({required this.selectedDay, required this.onDayTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final days = List.generate(31, (index) => index + 1);
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Color(0x1A000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
           ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Fila mes + flechas
+          // FILA SUPERIOR: Botón atrás + Notificaciones
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Icon(Icons.chevron_left, color: Colors.grey),
-              Text(
-                'January 2023',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            children: [
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
-              Icon(Icons.chevron_right, color: Colors.grey),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Días de la semana
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              _WeekdayLabel('Sun'),
-              _WeekdayLabel('Mon'),
-              _WeekdayLabel('Tue'),
-              _WeekdayLabel('Wed'),
-              _WeekdayLabel('Thu'),
-              _WeekdayLabel('Fri'),
-              _WeekdayLabel('Sat'),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // Grid de días
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              mainAxisSpacing: 6,
-              crossAxisSpacing: 6,
-            ),
-            itemCount: days.length,
-            itemBuilder: (context, index) {
-              final day = days[index];
-              final isSelected = day == selectedDay;
-
-              return GestureDetector(
-                onTap: () => onDayTap(day),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isSelected ? kPrimaryBlue : const Color(0xFFE7EDF9),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '$day',
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.black87,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w400,
-                      ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationsScreen(),
                     ),
+                  );
+                },
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Icon(
+                    Icons.notifications_none,
+                    color: kPrimaryBlue,
+                    size: 20,
                   ),
                 ),
-              );
-            },
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Reservar Amenidades,\n$userName!',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              height: 1.1,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Selecciona una fecha y horario disponible',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+            ),
           ),
         ],
       ),
@@ -189,19 +230,111 @@ class _CalendarSection extends StatelessWidget {
   }
 }
 
-class _WeekdayLabel extends StatelessWidget {
-  final String label;
+// ================== SECCIÓN CALENDARIO INTERACTIVO ==================
 
-  const _WeekdayLabel(this.label);
+class _CalendarSection extends StatelessWidget {
+  final DateTime selectedDay;
+  final DateTime focusedDay;
+  final CalendarFormat calendarFormat;
+  final Function(DateTime, DateTime) onDaySelected;
+  final Function(CalendarFormat) onFormatChanged;
+  final Function(DateTime) onPageChanged;
+
+  const _CalendarSection({
+    required this.selectedDay,
+    required this.focusedDay,
+    required this.calendarFormat,
+    required this.onDaySelected,
+    required this.onFormatChanged,
+    required this.onPageChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: const TextStyle(
-        fontSize: 12,
-        color: Colors.grey,
-        fontWeight: FontWeight.w500,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: kCardShadow,
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: TableCalendar(
+        firstDay: DateTime.now().subtract(const Duration(days: 365)),
+        lastDay: DateTime.now().add(const Duration(days: 365)),
+        focusedDay: focusedDay,
+        selectedDayPredicate: (day) => isSameDay(selectedDay, day),
+        onDaySelected: onDaySelected,
+        onFormatChanged: onFormatChanged,
+        onPageChanged: onPageChanged,
+        calendarFormat: calendarFormat,
+
+        // Estilo del encabezado
+        headerStyle: const HeaderStyle(
+          formatButtonVisible: false,
+          titleCentered: true,
+          titleTextStyle: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF333333),
+          ),
+          leftChevronIcon: Icon(Icons.chevron_left, color: Colors.grey),
+          rightChevronIcon: Icon(Icons.chevron_right, color: Colors.grey),
+          headerPadding: EdgeInsets.only(bottom: 12),
+        ),
+
+        // Estilo de los días de la semana
+        daysOfWeekStyle: const DaysOfWeekStyle(
+          weekdayStyle: TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+            fontWeight: FontWeight.w500,
+          ),
+          weekendStyle: TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+
+        // Estilo de los días
+        calendarStyle: CalendarStyle(
+          todayDecoration: BoxDecoration(
+            color: kPrimaryBlue.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          todayTextStyle: const TextStyle(
+            color: kPrimaryBlue,
+            fontWeight: FontWeight.w600,
+          ),
+          selectedDecoration: BoxDecoration(
+            color: kPrimaryBlue,
+            shape: BoxShape.circle,
+          ),
+          selectedTextStyle: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+          defaultTextStyle: const TextStyle(
+            color: Color(0xFF333333),
+            fontWeight: FontWeight.w400,
+          ),
+          weekendTextStyle: const TextStyle(
+            color: Color(0xFF333333),
+            fontWeight: FontWeight.w400,
+          ),
+          outsideDaysVisible: false,
+        ),
+
+        // Días de la semana en español
+        daysOfWeekHeight: 24,
+        rowHeight: 40,
       ),
     );
   }
@@ -210,58 +343,62 @@ class _WeekdayLabel extends StatelessWidget {
 // ================== SECCIÓN BOOKABLE SLOTS ==================
 
 class _BookableSlotsSection extends StatelessWidget {
-  const _BookableSlotsSection();
+  final List<Map<String, dynamic>> availability;
+
+  const _BookableSlotsSection({required this.availability});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-      padding: const EdgeInsets.only(top: 12, bottom: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: kCardShadow,
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Título + "Show All"
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text(
-                  'Bookable slots',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  'Show All',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: kPrimaryBlue,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+          // Título de la sección
+          const Text(
+            'Horarios Disponibles',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF333333),
             ),
           ),
-          const SizedBox(height: 12),
-
-          const _SlotCard(
-            icon: Icons.home_outlined,
-            title: 'Clubhouse',
-            timeRange: '7:00 am - 5:00 am',
+          const SizedBox(height: 4),
+          const Text(
+            'Selecciona un horario para reservar',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+              fontWeight: FontWeight.w400,
+            ),
           ),
-          const _SlotCard(
-            icon: Icons.pool_outlined,
-            title: 'Swimming Pool',
-            timeRange: '8:00 am - 8:00 pm',
+          const SizedBox(height: 16),
+
+          // Lista de amenidades disponibles
+          Column(
+            children:
+                availability
+                    .map(
+                      (amenity) => _SlotCard(
+                        icon: amenity['icon'] as IconData,
+                        title: amenity['title'] as String,
+                        timeRange: amenity['timeRange'] as String,
+                        isAvailable: amenity['isAvailable'] as bool,
+                      ),
+                    )
+                    .toList(),
           ),
         ],
       ),
@@ -273,36 +410,118 @@ class _SlotCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String timeRange;
+  final bool isAvailable;
 
   const _SlotCard({
     required this.icon,
     required this.title,
     required this.timeRange,
+    required this.isAvailable,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFE7EDF9),
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: kCardShadow,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Icon(icon, color: kPrimaryBlue),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 2),
-              Text(
-                timeRange,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+          // Icono
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: kPrimaryBlue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 28, color: kPrimaryBlue),
+          ),
+          const SizedBox(width: 16),
+
+          // Información - Usando Expanded para evitar overflow
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF333333),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  timeRange,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w400,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+
+                // Indicador de disponibilidad simplificado
+                Row(
+                  children: [
+                    Icon(
+                      Icons.circle,
+                      size: 10,
+                      color:
+                          isAvailable
+                              ? const Color(0xFF4CAF50)
+                              : const Color(0xFF9E9E9E),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isAvailable ? 'Disponible' : 'Reservado',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            isAvailable
+                                ? const Color(0xFF4CAF50)
+                                : const Color(0xFF9E9E9E),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Botón de reserva
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: isAvailable ? kPrimaryBlue : const Color(0xFFEEEEEE),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              isAvailable ? 'Reservar' : 'Ocupado',
+              style: TextStyle(
+                fontSize: 14,
+                color: isAvailable ? Colors.white : const Color(0xFF9E9E9E),
+                fontWeight: FontWeight.w600,
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -310,57 +529,112 @@ class _SlotCard extends StatelessWidget {
   }
 }
 
-// ================== BOTTOM NAVIGATION BAR ==================
+// ================== BOTTOM NAVIGATION BAR MEJORADO ==================
 
-class _AmenitiesBottomNavBar extends StatelessWidget {
+class _AmenitiesBottomNavBar extends StatefulWidget {
   final String userName;
 
   const _AmenitiesBottomNavBar({required this.userName});
 
   @override
+  State<_AmenitiesBottomNavBar> createState() => _AmenitiesBottomNavBarState();
+}
+
+class _AmenitiesBottomNavBarState extends State<_AmenitiesBottomNavBar> {
+  int _selectedIndex =
+      1; // Calendario seleccionado por defecto en esta pantalla
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        // Inicio → Dashboard
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DashboardScreen(userName: widget.userName),
+          ),
+        );
+        break;
+      case 1:
+        // Ya estamos en Amenities (Calendario)
+        break;
+      case 2:
+        // Alertas → NotificationsScreen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+        );
+        break;
+      case 3:
+        // Perfil → ProfileScreen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProfileScreen(userName: widget.userName),
+          ),
+        );
+        break;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: 1, // 0 home, 1 calendario (amenities), 2 bell, 3 perfil
-      onTap: (index) {
-        if (index == 0) {
-          // Home → Dashboard
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => DashboardScreen(userName: userName),
-            ),
-          );
-        } else if (index == 3) {
-          // Perfil
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ProfileScreen(userName: userName),
-            ),
-          );
-        }
-        // (1 y 2) por ahora no hacen nada especial
-      },
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: kPrimaryBlue,
-      unselectedItemColor: Colors.grey,
-      showSelectedLabels: false,
-      showUnselectedLabels: false,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_today_outlined),
-          label: 'Amenities',
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF000000).withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        selectedItemColor: kPrimaryBlue,
+        unselectedItemColor: const Color(0xFF9E9E9E),
+        selectedLabelStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.notifications_none),
-          label: 'Alerts',
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w400,
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          label: 'Profile',
-        ),
-      ],
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        elevation: 0,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined, size: 24),
+            activeIcon: Icon(Icons.home, size: 24),
+            label: 'Inicio',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today_outlined, size: 24),
+            activeIcon: Icon(Icons.calendar_today, size: 24),
+            label: 'Calendario',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications_none, size: 24),
+            activeIcon: Icon(Icons.notifications, size: 24),
+            label: 'Alertas',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline, size: 24),
+            activeIcon: Icon(Icons.person, size: 24),
+            label: 'Perfil',
+          ),
+        ],
+      ),
     );
   }
 }

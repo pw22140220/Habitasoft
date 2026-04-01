@@ -18,6 +18,7 @@ dependencies:
   table_calendar: ^3.0.9  # para calendario interactivo en amenities
   url_launcher: ^6.2.2  # para abrir WhatsApp desde ayuda y soporte
   local_auth: ^2.1.7  # para autenticación biométrica (huella/Face ID)
+  shared_preferences: ^2.2.2  # para guardar preferencias locales (biometría, modo oscuro)
 
 dev_dependencies:
   flutter_test:

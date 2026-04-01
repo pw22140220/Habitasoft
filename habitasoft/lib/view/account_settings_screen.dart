@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'edit_profile_screen.dart';
+import 'change_password_screen.dart';
+import 'home_screen.dart';
+import '../services/biometric_preferences_service.dart';
 
 // Pantalla de Configuración de Cuenta - Con funcionalidades
 class AccountSettingsScreen extends StatefulWidget {
@@ -10,6 +14,74 @@ class AccountSettingsScreen extends StatefulWidget {
 
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _isDarkMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  // Cargar preferencias desde shared_preferences
+  Future<void> _loadPreferences() async {
+    final darkModeEnabled =
+        await BiometricPreferencesService.getDarkModeEnabled();
+    setState(() => _isDarkMode = darkModeEnabled);
+  }
+
+  // Guardar preferencia de modo oscuro
+  Future<void> _saveDarkModePreference(bool value) async {
+    await BiometricPreferencesService.setDarkModeEnabled(value);
+    setState(() => _isDarkMode = value);
+  }
+
+  // Eliminar cuenta
+  Future<void> _deleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Eliminar Cuenta'),
+            content: const Text(
+              '¿Estás seguro de que deseas eliminar tu cuenta? '
+              'Esta acción eliminará todos tus datos locales y no se puede deshacer.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text(
+                  'Eliminar',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true) {
+      // Limpiar shared_preferences
+      await BiometricPreferencesService.clearUserData();
+
+      if (!mounted) return;
+
+      // Navegar al login original
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        (route) => false,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cuenta eliminada exitosamente'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,11 +113,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   ),
                   trailing: const Icon(Icons.chevron_right, color: Colors.grey),
                   onTap: () {
-                    // TODO: Navegar a pantalla de edición de perfil
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Funcionalidad en desarrollo'),
-                        backgroundColor: Colors.blue,
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const EditProfileScreen(),
                       ),
                     );
                   },
@@ -62,11 +133,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   ),
                   trailing: const Icon(Icons.chevron_right, color: Colors.grey),
                   onTap: () {
-                    // TODO: Navegar a pantalla de cambio de contraseña
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Funcionalidad en desarrollo'),
-                        backgroundColor: Colors.blue,
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ChangePasswordScreen(),
                       ),
                     );
                   },
@@ -95,7 +165,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 value: _isDarkMode,
                 activeColor: const Color(0xFF0B64D8),
                 onChanged: (value) {
-                  setState(() => _isDarkMode = value);
+                  _saveDarkModePreference(value);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -115,42 +185,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           // Botón de Eliminar Cuenta
           Center(
             child: TextButton.icon(
-              onPressed: () {
-                // TODO: Implementar eliminación de cuenta con confirmación
-                showDialog(
-                  context: context,
-                  builder:
-                      (context) => AlertDialog(
-                        title: const Text('Eliminar Cuenta'),
-                        content: const Text(
-                          '¿Estás seguro de que deseas eliminar tu cuenta? Esta acción no se puede deshacer.',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Cancelar'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Funcionalidad de eliminación en desarrollo',
-                                  ),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            },
-                            child: const Text(
-                              'Eliminar',
-                              style: TextStyle(color: Colors.red),
-                            ),
-                          ),
-                        ],
-                      ),
-                );
-              },
+              onPressed: _deleteAccount,
               icon: const Icon(Icons.delete_outline, color: Colors.red),
               label: const Text(
                 'Eliminar Cuenta',

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dashboard.dart';
-import '../services/auth_service.dart'; // ajusta la ruta según tu estructura
+import '../services/auth_service.dart';
+import '../services/biometric_service.dart';
+import '../services/biometric_preferences_service.dart';
+import 'biometric_prompt_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // servicio de auth
   final _authService = AuthService();
+  final _biometricService = BiometricService();
 
   bool _isLoading = false;
 
@@ -40,6 +44,14 @@ class _HomeScreenState extends State<HomeScreen> {
   double get gapAfterButton => 14;
 
   @override
+  void initState() {
+    super.initState();
+    // Prellenar con credenciales de prueba para desarrollo
+    _emailCtrl.text = 'usuario@condominio.com';
+    _passwordCtrl.text = 'usuario123';
+  }
+
+  @override
   void dispose() {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
@@ -55,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // AHORA login devuelve el nombre del usuario
+      // Login con el backend (manteniendo la lógica original)
       final userName = await _authService.login(
         _emailCtrl.text.trim(),
         _passwordCtrl.text,
@@ -63,13 +75,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (!mounted) return;
 
-      // 2) Si el backend respondió 200, navegamos al dashboard con el nombre
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => DashboardScreen(userName: userName),
-        ),
-      );
+      // Guardar el nombre del usuario en shared_preferences
+      await BiometricPreferencesService.setUserName(userName);
+
+      // Verificar si la biometría está activada
+      final biometricEnabled =
+          await BiometricPreferencesService.getBiometricEnabled();
+
+      if (biometricEnabled) {
+        // Biometría activada: intentar autenticación biométrica
+        await _handleBiometricLogin(userName);
+      } else {
+        // Biometría no activada: mostrar modal de activación
+        await _showBiometricPrompt(userName);
+      }
     } on AuthException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -85,6 +104,133 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  // Manejar login biométrico (cuando ya está activado)
+  Future<void> _handleBiometricLogin(String userName) async {
+    try {
+      final authenticated = await _biometricService.authenticate();
+
+      if (!mounted) return;
+
+      if (authenticated) {
+        // Autenticación biométrica exitosa
+        _navigateToDashboard(userName);
+      } else {
+        // Falló la autenticación biométrica
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Autenticación biométrica fallida. Intenta de nuevo.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error en autenticación biométrica: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Mostrar modal de activación de biometría
+  Future<void> _showBiometricPrompt(String userName) async {
+    // Verificar si el dispositivo soporta biometría
+    final isAvailable = await _biometricService.isBiometricAvailable();
+
+    if (!isAvailable) {
+      // Dispositivo no soporta biometría, navegar directo
+      _navigateToDashboard(userName);
+      return;
+    }
+
+    // Mostrar modal de activación
+    await BiometricPromptSheet.show(
+      context: context,
+      onActivateBiometric: () async {
+        if (!mounted) return;
+        Navigator.pop(context); // Cerrar modal
+
+        try {
+          final authenticated = await _biometricService.authenticate();
+
+          if (!mounted) return;
+
+          if (authenticated) {
+            // Guardar preferencia de biometría activada
+            await BiometricPreferencesService.setBiometricEnabled(true);
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Huella digital activada exitosamente'),
+                backgroundColor: Colors.green,
+              ),
+            );
+
+            _navigateToDashboard(userName);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('No se pudo activar la huella digital'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        }
+      },
+      onClose: () {
+        if (!mounted) return;
+        Navigator.pop(context); // Cerrar modal
+        _navigateToDashboard(userName); // Navegar sin activar biometría
+      },
+    );
+  }
+
+  // Navegar al Dashboard
+  void _navigateToDashboard(String userName) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DashboardScreen(userName: userName),
+      ),
+    );
+  }
+
+  // Widget placeholder para el logo (si falla la carga)
+  Widget _buildLogoPlaceholder() {
+    return Container(
+      height: 125,
+      width: 125,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.apartment, size: 60, color: Colors.white),
+          SizedBox(height: 8),
+          Text(
+            'HS',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -104,17 +250,28 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Form(
-              key: _formKey, // aquí usamos el form
+              key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SizedBox(height: topPad),
 
-                  //  LOGO
-                  Image.asset(
-                    'assets/images/habitasoft_logo.png',
-                    height: 125,
-                    width: 125,
+                  // LOGO - Con manejo robusto de errores
+                  Builder(
+                    builder: (context) {
+                      try {
+                        return Image.asset(
+                          'assets/images/habitasoft_logo.png',
+                          height: 125,
+                          width: 125,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildLogoPlaceholder();
+                          },
+                        );
+                      } catch (e) {
+                        return _buildLogoPlaceholder();
+                      }
+                    },
                   ),
 
                   Transform.translate(

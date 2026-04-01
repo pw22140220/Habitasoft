@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:habitasoft/view/login_screen.dart';
+import 'package:habitasoft/view/home_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Habitasoft',
-      home: const LoginScreen(),
+      home: const HomeScreen(),
     );
   }
 }

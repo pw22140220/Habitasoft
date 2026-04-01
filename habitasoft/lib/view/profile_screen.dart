@@ -5,6 +5,7 @@ import 'amenities_screen.dart';
 import 'notifications_screen.dart';
 import 'account_settings_screen.dart';
 import 'privacy_security_screen.dart';
+import '../services/biometric_preferences_service.dart';
 
 // ==== PALETA DE COLORES (MISMO QUE HOME SCREEN) ====
 const Color topGreen = Color(0xFF0A896E);
@@ -27,10 +28,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _notifPrefs = true;
   bool _notifications = true;
 
-  // Datos ficticios del usuario (Mock Data)
-  final String _userFullName = 'Juan Pérez';
-  final String _userEmail = 'juan.perez@condominio.com';
-  final String _userUnit = 'Torre A - Apto 301';
+  // Datos del usuario (cargados desde shared_preferences)
+  String _userFullName = 'Juan Pérez';
+  String _userEmail = 'juan.perez@condominio.com';
+  String _userUnit = 'Torre A - Apto 301';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  // Cargar datos del usuario desde shared_preferences
+  Future<void> _loadUserData() async {
+    final name = await BiometricPreferencesService.getUserName();
+    final email = await BiometricPreferencesService.getUserEmail();
+    final unit = await BiometricPreferencesService.getUserUnit();
+
+    if (mounted) {
+      setState(() {
+        _userFullName = name;
+        _userEmail = email;
+        _userUnit = unit;
+      });
+    }
+  }
 
   // Función para abrir WhatsApp de soporte
   Future<void> _openWhatsAppSupport() async {

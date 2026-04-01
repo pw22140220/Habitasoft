@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:habitasoft/view/profile_screen.dart';
-import 'amenities_screen.dart';
-import 'notifications_screen.dart';
+import 'package:habitasoft/view/amenities_screen.dart';
+import 'package:habitasoft/view/notifications_screen.dart';
+import 'package:habitasoft/view/qr_generation_screen.dart';
+import 'package:habitasoft/view/announcements_screen.dart';
+import 'package:habitasoft/view/payment_reminders_screen.dart';
 
-// ====== AJUSTES ======
+// ====== CONSTANTES DE DISEÑO ======
 const double kCardsOverlap = 33;
 const double kBlueExtraHeight = 60;
-// =====================
+const Color kPrimaryGreen = Color(0xFF15806C);
+const Color kPrimaryBlue = Color(0xFF0B64D8);
+const Color kLightGray = Color(0xFFF5F6FA);
+const Color kCardShadow = Color(0x0A000000);
+// ==================================
 
 class DashboardScreen extends StatelessWidget {
   final String userName;
@@ -16,7 +23,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: kLightGray,
       bottomNavigationBar: _BottomNavBar(userName: userName),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -28,7 +35,7 @@ class DashboardScreen extends StatelessWidget {
                 child: _OptionsGrid(userName: userName),
               ),
               const SizedBox(height: kCardsOverlap),
-              const _CommunitySection(),
+              const _AnnouncementsPreviewSection(),
             ],
           ),
         ),
@@ -37,7 +44,7 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-// ================== HEADER AZUL ==================
+// ================== HEADER MODERNO ==================
 
 class _Header extends StatelessWidget {
   final String userName;
@@ -46,8 +53,6 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const blue = Color(0xFF15806C);
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(
@@ -57,25 +62,34 @@ class _Header extends StatelessWidget {
         bottom: kBlueExtraHeight,
       ),
       decoration: const BoxDecoration(
-        color: blue,
+        color: kPrimaryGreen,
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(24),
           bottomRight: Radius.circular(24),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x1A000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // FILA SUPERIOR: "Dashboard" + campana
+          // FILA SUPERIOR: Dashboard + Notificaciones
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'Dashboard',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-
-              // --- CAMBIO AQUÍ: Agregamos GestureDetector para detectar el click ---
               GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -85,13 +99,20 @@ class _Header extends StatelessWidget {
                     ),
                   );
                 },
-                child: const CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.notifications_none, color: blue),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Icon(
+                    Icons.notifications_none,
+                    color: kPrimaryGreen,
+                    size: 20,
+                  ),
                 ),
               ),
-              // -------------------------------------------------------------------
             ],
           ),
           const SizedBox(height: 20),
@@ -100,8 +121,18 @@ class _Header extends StatelessWidget {
             style: const TextStyle(
               color: Colors.white,
               fontSize: 28,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
               height: 1.1,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Manage your condominium services',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],
@@ -110,8 +141,8 @@ class _Header extends StatelessWidget {
   }
 }
 
-// ================== GRID DE OPCIONES ==================
-// (Sin cambios, solo oculto para ahorrar espacio visual en la respuesta)
+// ================== GRID DE MÓDULOS PRINCIPALES ==================
+
 class _OptionsGrid extends StatelessWidget {
   final String userName;
   const _OptionsGrid({required this.userName});
@@ -122,22 +153,31 @@ class _OptionsGrid extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: GridView.count(
         crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        childAspectRatio: 1.2,
+        childAspectRatio: 1.1,
         children: [
           _DashboardCard(
-            icon: Icons.account_balance_wallet_outlined,
-            label: 'Pay Dues',
+            icon: Icons.qr_code_2_outlined,
+            label: 'Generar QR Visitas',
+            subtitle: 'Acceso para invitados',
+            color: const Color(0xFF4CAF50),
             onTap: () {
-              // Navegar a pagos
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => QRGenerationScreen(userName: userName),
+                ),
+              );
             },
           ),
           _DashboardCard(
-            icon: Icons.event_note_outlined,
-            label: 'Book Amenities',
+            icon: Icons.calendar_today_outlined,
+            label: 'Reservar Amenidades',
+            subtitle: 'Áreas comunes',
+            color: const Color(0xFF2196F3),
             onTap: () {
               Navigator.push(
                 context,
@@ -148,17 +188,31 @@ class _OptionsGrid extends StatelessWidget {
             },
           ),
           _DashboardCard(
-            icon: Icons.build_outlined,
-            label: 'Service Requests',
+            icon: Icons.announcement_outlined,
+            label: 'Anuncios Comunitarios',
+            subtitle: 'Avisos del administrador',
+            color: const Color(0xFFFF9800),
             onTap: () {
-              // Navegar a servicios
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AnnouncementsScreen(userName: userName),
+                ),
+              );
             },
           ),
           _DashboardCard(
-            icon: Icons.forum_outlined,
-            label: 'Community Feed',
+            icon: Icons.account_balance_wallet_outlined,
+            label: 'Recordatorios de Pago',
+            subtitle: 'Cuotas pendientes',
+            color: const Color(0xFF9C27B0),
             onTap: () {
-              // Navegar a feed
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PaymentRemindersScreen(userName: userName),
+                ),
+              );
             },
           ),
         ],
@@ -170,93 +224,155 @@ class _OptionsGrid extends StatelessWidget {
 class _DashboardCard extends StatelessWidget {
   final IconData icon;
   final String label;
+  final String subtitle;
+  final Color color;
   final VoidCallback onTap;
+
   const _DashboardCard({
     required this.icon,
     required this.label,
+    required this.subtitle,
+    required this.color,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    const blue = Color(0xFF0B64D8);
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: kCardShadow,
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          splashColor: color.withOpacity(0.1),
+          highlightColor: color.withOpacity(0.05),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, size: 28, color: color),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF333333),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ================== VISTA PREVIA DE ANUNCIOS ==================
+
+class _AnnouncementsPreviewSection extends StatelessWidget {
+  const _AnnouncementsPreviewSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(icon, size: 32, color: blue),
-              const SizedBox(height: 12),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 14,
+              const Text(
+                'Anuncios Recientes',
+                style: TextStyle(
+                  fontSize: 18,
                   fontWeight: FontWeight.w600,
+                  color: Color(0xFF333333),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AnnouncementsScreen(userName: 'Usuario'),
+                    ),
+                  );
+                },
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text(
+                  'Ver todos',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: kPrimaryBlue,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-// ================== COMMUNITY FEED ==================
-// (Sin cambios significativos)
-class _CommunitySection extends StatelessWidget {
-  const _CommunitySection();
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: const [
+        const SizedBox(height: 12),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.0),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Community Feed',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          child: _AnnouncementCard(),
         ),
-        SizedBox(height: 12),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.0),
-          child: _FeedCard(),
-        ),
-        SizedBox(height: 24),
+        const SizedBox(height: 24),
       ],
     );
   }
 }
 
-class _FeedCard extends StatelessWidget {
-  const _FeedCard();
+class _AnnouncementCard extends StatelessWidget {
+  const _AnnouncementCard();
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: kCardShadow,
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -267,38 +383,80 @@ class _FeedCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const CircleAvatar(
-                radius: 18,
-                backgroundColor: Color(0xFFEBF0FF),
-                child: Icon(Icons.apartment, color: Color(0xFF0B64D8)),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: kPrimaryGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.apartment,
+                  color: kPrimaryGreen,
+                  size: 20,
+                ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Community',
+                  children: [
+                    const Text(
+                      'Administración del Condominio',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
+                        color: Color(0xFF333333),
                       ),
                     ),
-                    SizedBox(height: 2),
-                    Text(
-                      '1 hour ago',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Hace 2 horas',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.more_horiz, size: 20, color: Colors.grey),
+              IconButton(
+                onPressed: () {},
+                icon: const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
             ],
           ),
           const SizedBox(height: 12),
           const Text(
-            'Welcome to the condominium management app! 😊',
-            style: TextStyle(fontSize: 14),
+            'Recordatorio: Mantenimiento programado del ascensor este viernes de 9:00 AM a 1:00 PM. Por favor, planifique sus actividades en consecuencia.',
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFF555555),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: kPrimaryGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'Importante',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: kPrimaryGreen,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -306,63 +464,108 @@ class _FeedCard extends StatelessWidget {
   }
 }
 
-// ================== BOTTOM NAVIGATION BAR ==================
+// ================== BOTTOM NAVIGATION BAR MEJORADO ==================
 
-class _BottomNavBar extends StatelessWidget {
+class _BottomNavBar extends StatefulWidget {
   final String userName;
 
   const _BottomNavBar({required this.userName});
 
   @override
-  Widget build(BuildContext context) {
-    const blue = Color(0xFF0B64D8);
+  State<_BottomNavBar> createState() => _BottomNavBarState();
+}
 
-    return BottomNavigationBar(
-      currentIndex: 0,
-      onTap: (index) {
-        if (index == 1) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AmenitiesScreen(userName: userName),
-            ),
-          );
-        } else if (index == 2) {
-          // --- CAMBIO AQUÍ: Lógica para el botón "Alerts" ---
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-          );
-          // --------------------------------------------------
-        } else if (index == 3) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ProfileScreen(userName: userName),
-            ),
-          );
-        }
-      },
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: blue,
-      unselectedItemColor: Colors.grey,
-      showSelectedLabels: false,
-      showUnselectedLabels: false,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_today_outlined),
-          label: 'Amenities',
+class _BottomNavBarState extends State<_BottomNavBar> {
+  int _selectedIndex = 0;
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        // Ya estamos en el Dashboard
+        break;
+      case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AmenitiesScreen(userName: widget.userName),
+          ),
+        );
+        break;
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+        );
+        break;
+      case 3:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProfileScreen(userName: widget.userName),
+          ),
+        );
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF000000).withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        selectedItemColor: kPrimaryBlue,
+        unselectedItemColor: const Color(0xFF9E9E9E),
+        selectedLabelStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.notifications_none),
-          label: 'Alerts',
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w400,
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          label: 'Profile',
-        ),
-      ],
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        elevation: 0,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined, size: 24),
+            activeIcon: Icon(Icons.home, size: 24),
+            label: 'Inicio',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today_outlined, size: 24),
+            activeIcon: Icon(Icons.calendar_today, size: 24),
+            label: 'Calendario',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications_none, size: 24),
+            activeIcon: Icon(Icons.notifications, size: 24),
+            label: 'Alertas',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline, size: 24),
+            activeIcon: Icon(Icons.person, size: 24),
+            label: 'Perfil',
+          ),
+        ],
+      ),
     );
   }
 }

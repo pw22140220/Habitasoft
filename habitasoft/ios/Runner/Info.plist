@@ -45,5 +45,8 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Face ID usage description -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>Habitasoft necesita acceder a Face ID para autenticación biométrica</string>
 </dict>
 </plist>

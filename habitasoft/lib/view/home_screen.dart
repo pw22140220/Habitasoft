@@ -46,9 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Prellenar con credenciales de prueba para desarrollo
-    _emailCtrl.text = 'usuario@condominio.com';
-    _passwordCtrl.text = 'usuario123';
   }
 
   @override
@@ -82,12 +79,25 @@ class _HomeScreenState extends State<HomeScreen> {
       final biometricEnabled =
           await BiometricPreferencesService.getBiometricEnabled();
 
-      if (biometricEnabled) {
-        // Biometría activada: intentar autenticación biométrica
+      print('DEBUG: biometricEnabled = $biometricEnabled');
+
+      // Verificar si el dispositivo soporta biometría
+      final isBiometricAvailable =
+          await _biometricService.isBiometricAvailable();
+      print('DEBUG: isBiometricAvailable = $isBiometricAvailable');
+
+      if (biometricEnabled && isBiometricAvailable) {
+        // Biometría activada y disponible: intentar autenticación biométrica
+        print('DEBUG: Intentando autenticación biométrica directa');
         await _handleBiometricLogin(userName);
-      } else {
-        // Biometría no activada: mostrar modal de activación
+      } else if (isBiometricAvailable) {
+        // Biometría disponible pero no activada: mostrar modal de activación
+        print('DEBUG: Mostrando modal de activación de biometría');
         await _showBiometricPrompt(userName);
+      } else {
+        // Biometría no disponible: navegar directo al dashboard
+        print('DEBUG: Biometría no disponible, navegando directo');
+        _navigateToDashboard(userName);
       }
     } on AuthException catch (e) {
       if (!mounted) return;
@@ -115,46 +125,74 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (authenticated) {
         // Autenticación biométrica exitosa
+        print('DEBUG: Autenticación biométrica exitosa');
         _navigateToDashboard(userName);
       } else {
-        // Falló la autenticación biométrica
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Autenticación biométrica fallida. Intenta de nuevo.',
-            ),
-            backgroundColor: Colors.red,
-          ),
+        // Falló la autenticación biométrica - ofrecer alternativa
+        print('DEBUG: Autenticación biométrica fallida');
+        if (!mounted) return;
+
+        final choice = await showDialog<bool>(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text('Autenticación fallida'),
+                content: const Text(
+                  'No se pudo verificar tu huella digital. ¿Deseas intentar de nuevo o continuar sin biometría?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed:
+                        () => Navigator.pop(context, true), // Intentar de nuevo
+                    child: const Text('Intentar de nuevo'),
+                  ),
+                  TextButton(
+                    onPressed:
+                        () => Navigator.pop(
+                          context,
+                          false,
+                        ), // Continuar sin biometría
+                    child: const Text('Continuar sin biometría'),
+                  ),
+                ],
+              ),
         );
+
+        if (choice == true) {
+          // Intentar de nuevo
+          await _handleBiometricLogin(userName);
+        } else if (choice == false) {
+          // Continuar sin biometría
+          _navigateToDashboard(userName);
+        }
       }
     } catch (e) {
+      print('DEBUG: Error en autenticación biométrica: $e');
       if (!mounted) return;
+
+      // Si hay error, continuar sin biometría
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error en autenticación biométrica: $e'),
-          backgroundColor: Colors.red,
+          content: Text(
+            'Error en autenticación biométrica. Continuando sin biometría.',
+          ),
+          backgroundColor: Colors.orange,
         ),
       );
+      _navigateToDashboard(userName);
     }
   }
 
   // Mostrar modal de activación de biometría
   Future<void> _showBiometricPrompt(String userName) async {
-    // Verificar si el dispositivo soporta biometría
-    final isAvailable = await _biometricService.isBiometricAvailable();
-
-    if (!isAvailable) {
-      // Dispositivo no soporta biometría, navegar directo
-      _navigateToDashboard(userName);
-      return;
-    }
+    print('DEBUG: Mostrando modal de activación de biometría');
 
     // Mostrar modal de activación
-    await BiometricPromptSheet.show(
+    final result = await BiometricPromptSheet.show(
       context: context,
       onActivateBiometric: () async {
         if (!mounted) return;
-        Navigator.pop(context); // Cerrar modal
+        print('DEBUG: Usuario presionó "Activar huella digital"');
 
         try {
           final authenticated = await _biometricService.authenticate();
@@ -164,36 +202,54 @@ class _HomeScreenState extends State<HomeScreen> {
           if (authenticated) {
             // Guardar preferencia de biometría activada
             await BiometricPreferencesService.setBiometricEnabled(true);
+            print('DEBUG: Biometría activada exitosamente');
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Huella digital activada exitosamente'),
-                backgroundColor: Colors.green,
-              ),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Huella digital activada exitosamente'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
 
             _navigateToDashboard(userName);
           } else {
+            print('DEBUG: Autenticación biométrica fallida');
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('No se pudo activar la huella digital'),
+                content: Text('No se pudo verificar tu huella digital'),
                 backgroundColor: Colors.red,
               ),
             );
           }
         } catch (e) {
+          print('DEBUG: Error en activación de biometría: $e');
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('Error al activar biometría: $e'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       },
       onClose: () {
         if (!mounted) return;
-        Navigator.pop(context); // Cerrar modal
+        print(
+          'DEBUG: Usuario presionó "Cerrar", navegando sin activar biometría',
+        );
         _navigateToDashboard(userName); // Navegar sin activar biometría
       },
     );
+
+    // Si el usuario cierra el modal tocando fuera
+    if (result == null && mounted) {
+      print(
+        'DEBUG: Modal cerrado tocando fuera, navegando sin activar biometría',
+      );
+      _navigateToDashboard(userName);
+    }
   }
 
   // Navegar al Dashboard

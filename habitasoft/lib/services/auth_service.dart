@@ -9,11 +9,19 @@ class AuthException implements Exception {
   String toString() => message;
 }
 
+// Modelo para la respuesta de login
+class LoginResponse {
+  final String userName;
+  final String userRole; // 'admin', 'resident', 'guard'
+
+  LoginResponse({required this.userName, required this.userRole});
+}
+
 class AuthService {
   static const String _baseUrl = 'http://10.0.2.2:8084';
 
-  // AHORA devuelve Future<String> con el nombre del usuario
-  Future<String> login(String email, String password) async {
+  // Devuelve LoginResponse con nombre y rol del usuario
+  Future<LoginResponse> login(String email, String password) async {
     // Validación básica local
     if (email.isEmpty || password.isEmpty) {
       throw AuthException('El correo y la contraseña son obligatorios.');
@@ -35,11 +43,15 @@ class AuthService {
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
+        print('STATUS: ${response.statusCode}');
+        print('LOGIN BODY: ${response.body}');
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final usuario = data['usuario'] as Map<String, dynamic>;
         final userName = usuario['nombre'] as String;
+        // Por defecto, asumimos rol de residente si no viene en la respuesta
+        final userRole = usuario['rol'] as String? ?? 'admin';
 
-        return userName;
+        return LoginResponse(userName: userName, userRole: userRole);
       } else if (response.statusCode == 400) {
         throw AuthException(
           'Datos inválidos. Verifica el correo y la contraseña.',
@@ -56,10 +68,10 @@ class AuthService {
 
       // Datos mock para desarrollo
       if (email == 'admin@habitasoft.com' && password == 'admin123') {
-        return 'Administrador';
+        return LoginResponse(userName: 'Administrador', userRole: 'admin');
       } else if (email == 'usuario@condominio.com' &&
           password == 'usuario123') {
-        return 'Juan Pérez';
+        return LoginResponse(userName: 'Juan Pérez', userRole: 'resident');
       } else {
         throw AuthException('Correo o contraseña incorrectos (modo mock).');
       }

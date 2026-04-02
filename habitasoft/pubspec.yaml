@@ -19,6 +19,7 @@ dependencies:
   url_launcher: ^6.2.2  # para abrir WhatsApp desde ayuda y soporte
   local_auth: ^2.1.7  # para autenticación biométrica (huella/Face ID)
   shared_preferences: ^2.2.2  # para guardar preferencias locales (biometría, modo oscuro)
+  provider: ^6.1.2  # para gestión de estado con ChangeNotifier
 
 dev_dependencies:
   flutter_test:

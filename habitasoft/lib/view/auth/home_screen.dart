@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../resident/dashboard.dart';
+import '../admin/admin_shell.dart';
 import '../../services/auth_service.dart';
 import '../../services/biometric_service.dart';
 import '../../services/biometric_preferences_service.dart';
@@ -65,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       // Login con el backend (manteniendo la lógica original)
-      final userName = await _authService.login(
+      final loginResponse = await _authService.login(
         _emailCtrl.text.trim(),
         _passwordCtrl.text,
       );
@@ -73,7 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
 
       // Guardar el nombre del usuario en shared_preferences
-      await BiometricPreferencesService.setUserName(userName);
+      await BiometricPreferencesService.setUserName(loginResponse.userName);
 
       // Verificar si la biometría está activada
       final biometricEnabled =
@@ -89,15 +90,15 @@ class _HomeScreenState extends State<HomeScreen> {
       if (biometricEnabled && isBiometricAvailable) {
         // Biometría activada y disponible: intentar autenticación biométrica
         print('DEBUG: Intentando autenticación biométrica directa');
-        await _handleBiometricLogin(userName);
+        await _handleBiometricLogin(loginResponse);
       } else if (isBiometricAvailable) {
         // Biometría disponible pero no activada: mostrar modal de activación
         print('DEBUG: Mostrando modal de activación de biometría');
-        await _showBiometricPrompt(userName);
+        await _showBiometricPrompt(loginResponse);
       } else {
         // Biometría no disponible: navegar directo al dashboard
         print('DEBUG: Biometría no disponible, navegando directo');
-        _navigateToDashboard(userName);
+        _navigateToDashboard(loginResponse);
       }
     } on AuthException catch (e) {
       if (!mounted) return;
@@ -117,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // Manejar login biométrico (cuando ya está activado)
-  Future<void> _handleBiometricLogin(String userName) async {
+  Future<void> _handleBiometricLogin(LoginResponse loginResponse) async {
     try {
       final authenticated = await _biometricService.authenticate();
 
@@ -126,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (authenticated) {
         // Autenticación biométrica exitosa
         print('DEBUG: Autenticación biométrica exitosa');
-        _navigateToDashboard(userName);
+        _navigateToDashboard(loginResponse);
       } else {
         // Falló la autenticación biométrica - ofrecer alternativa
         print('DEBUG: Autenticación biométrica fallida');
@@ -160,10 +161,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (choice == true) {
           // Intentar de nuevo
-          await _handleBiometricLogin(userName);
+          await _handleBiometricLogin(loginResponse);
         } else if (choice == false) {
           // Continuar sin biometría
-          _navigateToDashboard(userName);
+          _navigateToDashboard(loginResponse);
         }
       }
     } catch (e) {
@@ -179,12 +180,12 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: Colors.orange,
         ),
       );
-      _navigateToDashboard(userName);
+      _navigateToDashboard(loginResponse);
     }
   }
 
   // Mostrar modal de activación de biometría
-  Future<void> _showBiometricPrompt(String userName) async {
+  Future<void> _showBiometricPrompt(LoginResponse loginResponse) async {
     print('DEBUG: Mostrando modal de activación de biometría');
 
     // Mostrar modal de activación
@@ -213,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             }
 
-            _navigateToDashboard(userName);
+            _navigateToDashboard(loginResponse);
           } else {
             print('DEBUG: Autenticación biométrica fallida');
             ScaffoldMessenger.of(context).showSnackBar(
@@ -239,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
         print(
           'DEBUG: Usuario presionó "Cerrar", navegando sin activar biometría',
         );
-        _navigateToDashboard(userName); // Navegar sin activar biometría
+        _navigateToDashboard(loginResponse); // Navegar sin activar biometría
       },
     );
 
@@ -248,18 +249,28 @@ class _HomeScreenState extends State<HomeScreen> {
       print(
         'DEBUG: Modal cerrado tocando fuera, navegando sin activar biometría',
       );
-      _navigateToDashboard(userName);
+      _navigateToDashboard(loginResponse);
     }
   }
 
-  // Navegar al Dashboard
-  void _navigateToDashboard(String userName) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DashboardScreen(userName: userName),
-      ),
-    );
+  // Navegar al Dashboard según el rol
+  void _navigateToDashboard(LoginResponse loginResponse) {
+    if (loginResponse.userRole == 'admin') {
+      // Navegar al AdminShell
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AdminShell()),
+      );
+    } else {
+      // Navegar al Dashboard normal para residentes
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => DashboardScreen(userName: loginResponse.userName),
+        ),
+      );
+    }
   }
 
   // Widget placeholder para el logo (si falla la carga)

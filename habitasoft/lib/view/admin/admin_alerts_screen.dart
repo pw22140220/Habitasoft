@@ -336,7 +336,7 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
         ),
         trailing: const Icon(Icons.chevron_right, color: Colors.grey),
         onTap: () {
-          // TODO: Ver detalles de la alerta
+          _showAlertDetail(alert);
         },
       ),
     );
@@ -492,6 +492,128 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
               ],
             );
           },
+        );
+      },
+    );
+  }
+
+  // Método para mostrar detalles de una alerta
+  void _showAlertDetail(Alert alert) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(alert.title),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(alert.message, style: const TextStyle(fontSize: 14)),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[200]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.priority_high,
+                            color: alert.getPriorityColor(),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Prioridad: ${alert.getPriorityText()}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: alert.getPriorityColor(),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            color: Colors.grey[600],
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Fecha: ${alert.date.day}/${alert.date.month}/${alert.date.year}',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            alert.sent ? Icons.check_circle : Icons.error,
+                            color: alert.sent ? Colors.green : Colors.orange,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            alert.sent
+                                ? 'Estado: Enviada'
+                                : 'Estado: Pendiente',
+                            style: TextStyle(
+                              color: alert.sent ? Colors.green : Colors.orange,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.access_time,
+                            color: Colors.grey[600],
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Hora: ${alert.date.hour.toString().padLeft(2, '0')}:${alert.date.minute.toString().padLeft(2, '0')}',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cerrar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // TODO: Implementar reenviar alerta
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Alerta reenviada exitosamente'),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green[700],
+              ),
+              child: const Text('Reenviar'),
+            ),
+          ],
         );
       },
     );

@@ -3,14 +3,42 @@ import 'package:provider/provider.dart';
 import 'admin_state.dart';
 
 // Pantalla para listar y seleccionar condominios
-class AdminCondominiumsScreen extends StatelessWidget {
+class AdminCondominiumsScreen extends StatefulWidget {
   const AdminCondominiumsScreen({super.key});
+
+  @override
+  State<AdminCondominiumsScreen> createState() =>
+      _AdminCondominiumsScreenState();
+}
+
+class _AdminCondominiumsScreenState extends State<AdminCondominiumsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final adminState = Provider.of<AdminState>(context);
-    final condominiums = adminState.condominiums;
+    final allCondominiums = adminState.getCondominiums(context);
     final selectedCondominium = adminState.selectedCondominium;
+
+    // Filtrar condominios basado en la búsqueda
+    final filteredCondominiums =
+        _searchQuery.isEmpty
+            ? allCondominiums
+            : allCondominiums.where((condominium) {
+              return condominium.name.toLowerCase().contains(
+                    _searchQuery.toLowerCase(),
+                  ) ||
+                  condominium.address.toLowerCase().contains(
+                    _searchQuery.toLowerCase(),
+                  );
+            }).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -39,12 +67,29 @@ class AdminCondominiumsScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: TextField(
+                controller: _searchController,
                 decoration: InputDecoration(
                   hintText: 'Buscar condominio...',
                   border: InputBorder.none,
                   icon: Icon(Icons.search, color: Colors.grey[600]),
-                  suffixIcon: Icon(Icons.filter_list, color: Colors.grey[600]),
+                  suffixIcon:
+                      _searchQuery.isNotEmpty
+                          ? IconButton(
+                            icon: Icon(Icons.clear, color: Colors.grey[600]),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                          : Icon(Icons.filter_list, color: Colors.grey[600]),
                 ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
               ),
             ),
           ),
@@ -93,9 +138,9 @@ class AdminCondominiumsScreen extends StatelessWidget {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: condominiums.length,
+              itemCount: filteredCondominiums.length,
               itemBuilder: (context, index) {
-                final condominium = condominiums[index];
+                final condominium = filteredCondominiums[index];
                 final isSelected = selectedCondominium?.id == condominium.id;
 
                 return Container(
@@ -193,7 +238,7 @@ class AdminCondominiumsScreen extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 // TODO: Implementar agregar nuevo condominio
-                _showAddCondominiumDialog(context);
+                _showAddCondominiumDialog();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green[700],
@@ -224,7 +269,7 @@ class AdminCondominiumsScreen extends StatelessWidget {
   }
 
   // Método para mostrar diálogo de agregar condominio
-  void _showAddCondominiumDialog(BuildContext context) {
+  void _showAddCondominiumDialog() {
     showDialog(
       context: context,
       builder: (context) {

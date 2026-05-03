@@ -49,7 +49,7 @@ class AuthService {
         final usuario = data['usuario'] as Map<String, dynamic>;
         final userName = usuario['nombre'] as String;
         // Por defecto, asumimos rol de residente si no viene en la respuesta
-        final userRole = usuario['rol'] as String? ?? 'admin';
+        final userRole = usuario['rol'] as String? ?? 'guard';
 
         return LoginResponse(userName: userName, userRole: userRole);
       } else if (response.statusCode == 400) {
@@ -72,6 +72,9 @@ class AuthService {
       } else if (email == 'usuario@condominio.com' &&
           password == 'usuario123') {
         return LoginResponse(userName: 'Juan Pérez', userRole: 'resident');
+      } else if (email == 'vigilante@condominio.com' &&
+          password == 'vigilante123') {
+        return LoginResponse(userName: 'Carlos Rodríguez', userRole: 'guard');
       } else {
         throw AuthException('Correo o contraseña incorrectos (modo mock).');
       }

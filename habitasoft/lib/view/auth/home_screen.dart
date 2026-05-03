@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../resident/dashboard.dart';
 import '../admin/admin_shell.dart';
+import '../watchman/watchman_dashboard.dart';
 import '../../services/auth_service.dart';
 import '../../services/biometric_service.dart';
 import '../../services/biometric_preferences_service.dart';
@@ -260,6 +261,16 @@ class _HomeScreenState extends State<HomeScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const AdminShell()),
+      );
+    } else if (loginResponse.userRole == 'guard') {
+      // Navegar al Dashboard del vigilante
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) =>
+                  WatchmanDashboardScreen(userName: loginResponse.userName),
+        ),
       );
     } else {
       // Navegar al Dashboard normal para residentes

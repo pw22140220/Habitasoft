@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'services/mock_backend_store.dart';
 import 'view/admin/admin_state.dart';
 import 'view/auth/home_screen.dart';
 
@@ -9,7 +10,10 @@ class HabitasoftApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => AdminState())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => MockBackendStore()),
+        ChangeNotifierProvider(create: (_) => AdminState()),
+      ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Habitasoft',

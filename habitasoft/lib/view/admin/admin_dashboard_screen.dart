@@ -79,22 +79,25 @@ class AdminDashboardScreen extends StatelessWidget {
         elevation: 2,
         actions: [
           // Selector de condominio en el AppBar
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Row(
-              children: [
-                Icon(Icons.apartment, color: Colors.white, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  selectedCondominium!.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
+          GestureDetector(
+            onTap: () => _showCondominioSelector(context),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16.0),
+              child: Row(
+                children: [
+                  Icon(Icons.apartment, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    selectedCondominium!.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 4),
-                Icon(Icons.arrow_drop_down, color: Colors.white),
-              ],
+                  const SizedBox(width: 4),
+                  Icon(Icons.arrow_drop_down, color: Colors.white),
+                ],
+              ),
             ),
           ),
         ],
@@ -299,24 +302,28 @@ class AdminDashboardScreen extends StatelessWidget {
             const SizedBox(height: 16),
 
             _buildRecentActivityItem(
+              context,
               'Nueva reserva',
               'Juan Pérez reservó la sala de eventos para mañana',
               Icons.calendar_today,
               Colors.blue,
             ),
             _buildRecentActivityItem(
+              context,
               'Anuncio publicado',
               'Se publicó un nuevo anuncio sobre mantenimiento',
               Icons.announcement,
               Colors.green,
             ),
             _buildRecentActivityItem(
+              context,
               'Pago vencido',
               '3 residentes con pagos pendientes',
               Icons.payment,
               Colors.orange,
             ),
             _buildRecentActivityItem(
+              context,
               'Nuevo residente',
               'María González se registró en el sistema',
               Icons.person_add,
@@ -380,60 +387,262 @@ class AdminDashboardScreen extends StatelessWidget {
 
   // Método para construir items de actividad reciente
   Widget _buildRecentActivityItem(
+    BuildContext context,
     String title,
     String description,
     IconData icon,
     Color color,
   ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+    return GestureDetector(
+      onTap: () => _showActivityDetail(context, title, description),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
             ),
-            child: Icon(icon, color: color, size: 20),
+          ],
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: Colors.grey[400]),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Método para mostrar selector de condominio en modal bottom sheet
+  void _showCondominioSelector(BuildContext context) {
+    final adminState = Provider.of<AdminState>(context, listen: false);
+    final condominiums = adminState.getCondominiums(context);
+    final selectedCondominium = adminState.selectedCondominium;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[800],
+          child: Column(
+            children: [
+              // Header del modal
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green[700],
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Seleccionar Condominio',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+
+              // Barra de búsqueda
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Buscar condominio...',
+                      border: InputBorder.none,
+                      icon: Icon(Icons.search, color: Colors.grey[600]),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Lista de condominios
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: condominiums.length,
+                  itemBuilder: (context, index) {
+                    final condominium = condominiums[index];
+                    final isSelected =
+                        selectedCondominium?.id == condominium.id;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.green[50] : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color:
+                              isSelected
+                                  ? Colors.green[200]!
+                                  : Colors.grey[200]!,
+                        ),
+                      ),
+                      child: ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color:
+                                isSelected
+                                    ? Colors.green[700]
+                                    : Colors.grey[300],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.apartment,
+                            color: isSelected ? Colors.white : Colors.grey[600],
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          condominium.name,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color:
+                                isSelected
+                                    ? Colors.green[800]
+                                    : Colors.grey[800],
+                          ),
+                        ),
+                        subtitle: Text(
+                          condominium.address,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        trailing:
+                            isSelected
+                                ? Icon(
+                                  Icons.check_circle,
+                                  color: Colors.green[700],
+                                )
+                                : null,
+                        onTap: () {
+                          adminState.selectCondominium(condominium);
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // Botón para ver todos los condominios
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const AdminCondominiumsScreen(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[700],
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Ver todos los condominios',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
           ),
-          Icon(Icons.chevron_right, color: Colors.grey[400]),
-        ],
-      ),
+        );
+      },
+    );
+  }
+
+  // Método para mostrar detalle de actividad
+  void _showActivityDetail(
+    BuildContext context,
+    String title,
+    String description,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(description),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

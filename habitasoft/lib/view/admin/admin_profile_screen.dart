@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'profile/admin_personal_info_screen.dart';
+import 'profile/admin_security_screen.dart';
 
 // Pantalla de perfil del administrador
 class AdminProfileScreen extends StatelessWidget {
@@ -95,7 +97,11 @@ class AdminProfileScreen extends StatelessWidget {
               title: 'Información personal',
               subtitle: 'Actualiza tus datos personales',
               onTap: () {
-                // TODO: Navegar a pantalla de información personal
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const AdminPersonalInfoScreen(),
+                  ),
+                );
               },
             ),
             _buildOptionItem(
@@ -104,7 +110,11 @@ class AdminProfileScreen extends StatelessWidget {
               title: 'Seguridad',
               subtitle: 'Cambiar contraseña, autenticación',
               onTap: () {
-                // TODO: Navegar a pantalla de seguridad
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const AdminSecurityScreen(),
+                  ),
+                );
               },
             ),
             _buildOptionItem(

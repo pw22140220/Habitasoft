@@ -45,3 +45,15 @@ Cuando te pida una pantalla nueva, obedece este orden exacto:
 - 🚫 **Cero Secretos:** NUNCA escribas contraseñas, Tokens, ni URLs de producción directamente en el código de Flutter. Todo eso debe ir en un archivo oculto `.env`.
 - 🔐 **Almacenamiento Seguro:** Cuando el usuario inicie sesión, guarda su "Token de acceso" usando el paquete `flutter_secure_storage` (NUNCA uses `shared_preferences` para datos sensibles, ya que es fácil de hackear).
 - 👮‍♂️ **Interceptores:** Usa `dio` para inyectar automáticamente el Token de seguridad en cada petición que vaya al servidor Java. Si el servidor responde "401 No Autorizado", saca al usuario a la pantalla de Login inmediatamente.
+### 9.-🗄️ BASE DE DATOS (MySQL)
+- **Ubicación del Esquema:** `./database/estructura_total.sql`
+- **Carpeta de Migraciones:** `./database/migraciones/`
+- **Reglas de Modificación:**
+    1. CUALQUIER cambio en las tablas debe quedar registrado en un archivo nuevo en `./database/migraciones/` (ej: `002_descripcion.sql`).
+    2. Al mismo tiempo, se debe actualizar el archivo `./database/estructura_total.sql` para reflejar el estado actual.
+    3. No se deben crear consultas SQL en el código de Flutter sin antes verificar los nombres de columnas en el esquema oficial.
+
+### 👥 ROLES Y PERMISOS DEFINIDOS
+- **administrador**: Gestiona condominios, amenidades, residentes y envía recordatorios/alertas.
+- **residente**: Ve sus condominios, reserva amenidades, genera QRs y recibe alertas.
+- **guardia**: Escanea QRs, registra accesos y crea bitácora de incidentes.

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'watchman_notifications_screen.dart';
 import 'watchman_qr_scanner_screen.dart';
 import 'watchman_announcements_screen.dart';
+import 'watchman_incidents_screen.dart';
+import 'watchman_history_screen.dart';
 
 // ====== CONSTANTES DE DISEÑO ======
 const double kCardsOverlap = 33;
@@ -191,10 +193,10 @@ class _OptionsGrid extends StatelessWidget {
             subtitle: 'Reportar problemas',
             color: const Color(0xFFFF9800),
             onTap: () {
-              // TODO: Implementar pantalla de incidentes
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Pantalla de incidentes en desarrollo'),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => WatchmanIncidentsScreen(userName: userName),
                 ),
               );
             },
@@ -205,10 +207,10 @@ class _OptionsGrid extends StatelessWidget {
             subtitle: 'Registro de accesos',
             color: const Color(0xFF9C27B0),
             onTap: () {
-              // TODO: Implementar pantalla de historial
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Pantalla de historial en desarrollo'),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => WatchmanHistoryScreen(userName: userName),
                 ),
               );
             },
@@ -508,8 +510,15 @@ class _BottomNavBarState extends State<_BottomNavBar> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder:
-                (_) => WatchmanAnnouncementsScreen(userName: widget.userName),
+            builder: (_) => WatchmanHistoryScreen(userName: widget.userName),
+          ),
+        );
+        break;
+      case 4:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => WatchmanIncidentsScreen(userName: widget.userName),
           ),
         );
         break;
@@ -564,9 +573,14 @@ class _BottomNavBarState extends State<_BottomNavBar> {
             label: 'Alertas',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.announcement_outlined, size: 24),
-            activeIcon: Icon(Icons.announcement, size: 24),
-            label: 'Avisos',
+            icon: Icon(Icons.history, size: 24),
+            activeIcon: Icon(Icons.history, size: 24),
+            label: 'Historial',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.report_outlined, size: 24),
+            activeIcon: Icon(Icons.report, size: 24),
+            label: 'Incidentes',
           ),
         ],
       ),

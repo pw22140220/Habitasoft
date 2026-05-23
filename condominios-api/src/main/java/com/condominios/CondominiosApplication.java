@@ -1,15 +1,19 @@
 package com.condominios;
 
-import com.condominios.model.Usuario;
-import com.condominios.model.UsuarioAuth;
-import com.condominios.repository.UsuarioAuthRepository;
-import com.condominios.repository.UsuarioRepository;
+import com.condominios.model.User;
+import com.condominios.model.User.Rol;
+import com.condominios.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+/**
+ * Punto de entrada de la aplicación Spring Boot.
+ * Incluye un CommandLineRunner para sembrar datos de prueba
+ * si la tabla Usuarios está vacía.
+ */
 @SpringBootApplication
 public class CondominiosApplication {
 
@@ -17,74 +21,77 @@ public class CondominiosApplication {
         SpringApplication.run(CondominiosApplication.class, args);
     }
 
+    /**
+     * Crea usuarios de prueba al iniciar la aplicación si no existen.
+     * Lee la contraseña desde la variable de entorno HABITASOFT_DEFAULT_PASSWORD
+     * o usa "admin123" como valor por defecto.
+     */
     @Bean
-    public CommandLineRunner initData(UsuarioRepository usuarioRepository,
-                                      UsuarioAuthRepository usuarioAuthRepository,
-                                      PasswordEncoder passwordEncoder) {
+    public CommandLineRunner initData(UserRepository userRepository,
+                                       PasswordEncoder passwordEncoder) {
         return args -> {
 
-            crearUsuarioSiNoExiste(
-                "Admin General",
-                "admin@demo.com",
-                "5555555555",
-                "123456",
-                usuarioRepository,
-                usuarioAuthRepository,
-                passwordEncoder
-            );
+            String defaultPassword = System.getenv().getOrDefault(
+                    "HABITASOFT_DEFAULT_PASSWORD", "admin123");
 
             crearUsuarioSiNoExiste(
-                "Juan Pérez",
-                "juan@demo.com",
-                "5551112222",
-                "MiClave123",
-                usuarioRepository,
-                usuarioAuthRepository,
-                passwordEncoder
-            );
-
-            crearUsuarioSiNoExiste(
-                    "Carlos ",
+                    "Administrador General",
                     "admin@habitasoft.com",
-                    "5551112222",
-                    "admin123",
-                    usuarioRepository,
-                    usuarioAuthRepository,
+                    "7220000000",
+                    Rol.administrador,
+                    defaultPassword,
+                    userRepository,
                     passwordEncoder
-             );
+            );
+
+            crearUsuarioSiNoExiste(
+                    "Juan Pérez",
+                    "juan@example.com",
+                    "7221234567",
+                    Rol.residente,
+                    "123456HASH",
+                    userRepository,
+                    passwordEncoder
+            );
+
+            crearUsuarioSiNoExiste(
+                    "Carlos López",
+                    "carlos@example.com",
+                    "7220001111",
+                    Rol.residente,
+                    "HASH456",
+                    userRepository,
+                    passwordEncoder
+            );
         };
     }
 
+    /**
+     * Crea un usuario en la tabla Usuarios solo si no existe ya
+     * un registro con el mismo email.
+     */
     private void crearUsuarioSiNoExiste(String nombre,
-                                        String email,
-                                        String telefono,
-                                        String rawPassword,
-                                        UsuarioRepository usuarioRepository,
-                                        UsuarioAuthRepository usuarioAuthRepository,
-                                        PasswordEncoder passwordEncoder) {
+                                         String email,
+                                         String telefono,
+                                         Rol rol,
+                                         String rawPassword,
+                                         UserRepository userRepository,
+                                         PasswordEncoder passwordEncoder) {
 
-        // ¿Ya existe un usuario con ese email?
-        if (usuarioRepository.findByEmail(email).isPresent()) {
+        if (userRepository.findByEmail(email).isPresent()) {
             System.out.println("Usuario ya existe, no se crea de nuevo: " + email);
             return;
         }
 
-        // 1) Crear el Usuario
-        Usuario usuario = new Usuario();
-        usuario.setNombre(nombre);
-        usuario.setEmail(email);
-        usuario.setTelefono(telefono);
-        usuario.setActivo(true);
+        User user = new User();
+        user.setNombre(nombre);
+        user.setEmail(email);
+        user.setTelefono(telefono);
+        user.setRol(rol);
+        user.setPasswordHash(passwordEncoder.encode(rawPassword));
 
-        usuario = usuarioRepository.save(usuario);
+        userRepository.save(user);
 
-        // 2) Crear su registro de auth con password encriptado
-        UsuarioAuth auth = new UsuarioAuth();
-        auth.setUsuario(usuario);
-        auth.setPasswordHash(passwordEncoder.encode(rawPassword));
-
-        usuarioAuthRepository.save(auth);
-
-        System.out.println("Usuario creado: " + email + " / contraseña: " + rawPassword);
+        System.out.println("Usuario creado: " + email);
     }
 }

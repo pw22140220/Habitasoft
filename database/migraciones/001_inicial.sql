@@ -8,7 +8,7 @@ USE habitasoft_db;
 -- TABLA USUARIOS
 -- =========================================
 CREATE TABLE Usuarios (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
 
     nombre VARCHAR(100) NOT NULL,
 
@@ -32,7 +32,7 @@ CREATE TABLE Usuarios (
 -- TABLA CONDOMINIOS
 -- =========================================
 CREATE TABLE Condominios (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
 
     nombre VARCHAR(150) NOT NULL,
 
@@ -43,9 +43,9 @@ CREATE TABLE Condominios (
 -- TABLA UNIDADES
 -- =========================================
 CREATE TABLE Unidades (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
 
-    condominio_id INT NOT NULL,
+    condominio_id BIGINT NOT NULL,
 
     numero_unidad VARCHAR(20) NOT NULL,
 
@@ -60,9 +60,9 @@ CREATE TABLE Unidades (
 -- =========================================
 CREATE TABLE Residente_Unidad (
 
-    residente_id INT,
+    residente_id BIGINT ,
 
-    unidad_id INT,
+    unidad_id BIGINT ,
 
     PRIMARY KEY (residente_id, unidad_id),
 
@@ -81,13 +81,13 @@ CREATE TABLE Residente_Unidad (
 -- TABLA AMENIDADES
 -- =========================================
 CREATE TABLE Amenidades (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id BIGINT  PRIMARY KEY AUTO_INCREMENT,
 
-    condominio_id INT NOT NULL,
+    condominio_id BIGINT  NOT NULL,
 
     nombre VARCHAR(100) NOT NULL,
 
-    capacidad_maxima INT,
+    capacidad_maxima BIGINT ,
 
     FOREIGN KEY (condominio_id)
     REFERENCES Condominios(id)
@@ -99,11 +99,11 @@ CREATE TABLE Amenidades (
 -- TABLA RESERVACIONES
 -- =========================================
 CREATE TABLE Reservaciones (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id BIGINT  PRIMARY KEY AUTO_INCREMENT,
 
-    amenidad_id INT NOT NULL,
+    amenidad_id BIGINT  NOT NULL,
 
-    residente_id INT NOT NULL,
+    residente_id BIGINT  NOT NULL,
 
     fecha_hora_inicio DATETIME NOT NULL,
 
@@ -130,9 +130,9 @@ CREATE TABLE Reservaciones (
 -- TABLA PASES DE VISITA
 -- =========================================
 CREATE TABLE PasesDeVisita (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id BIGINT  PRIMARY KEY AUTO_INCREMENT,
 
-    residente_id INT NOT NULL,
+    residente_id BIGINT  NOT NULL,
 
     nombre_visitante VARCHAR(100),
 
@@ -156,9 +156,9 @@ CREATE TABLE PasesDeVisita (
 -- TABLA INCIDENTES
 -- =========================================
 CREATE TABLE Incidentes (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id BIGINT  PRIMARY KEY AUTO_INCREMENT,
 
-    reportado_por_id INT NOT NULL,
+    reportado_por_id BIGINT  NOT NULL,
 
     titulo VARCHAR(150),
 
@@ -177,9 +177,9 @@ CREATE TABLE Incidentes (
 -- TABLA NOTIFICACIONES
 -- =========================================
 CREATE TABLE Notificaciones (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id BIGINT  PRIMARY KEY AUTO_INCREMENT,
 
-    destinatario_id INT NOT NULL,
+    destinatario_id BIGINT  NOT NULL,
 
     tipo ENUM(
         'alerta',
@@ -203,9 +203,9 @@ CREATE TABLE Notificaciones (
 -- TABLA PAGOS
 -- =========================================
 CREATE TABLE Pagos (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id BIGINT  PRIMARY KEY AUTO_INCREMENT,
 
-    residente_id INT NOT NULL,
+    residente_id BIGINT  NOT NULL,
 
     monto DECIMAL(10,2) NOT NULL,
 
@@ -377,14 +377,14 @@ INNER JOIN Usuarios u
 DELIMITER //
 
 CREATE PROCEDURE CrearReservacion(
-    IN p_amenidad_id INT,
-    IN p_residente_id INT,
+    IN p_amenidad_id BIGINT,
+    IN p_residente_id BIGINT,
     IN p_inicio DATETIME,
     IN p_fin DATETIME
 )
 BEGIN
 
-    DECLARE conflicto INT;
+    DECLARE conflicto BIGINT;
 
     -- Validar fechas
     IF p_inicio >= p_fin THEN

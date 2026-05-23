@@ -1,32 +1,38 @@
 package com.condominios.dto;
 
-import java.util.List;
-import java.util.Map;
-
+/**
+ * Respuesta estándar del endpoint de login.
+ * Incluye los tokens JWT y los datos públicos del usuario autenticado.
+ */
 public class LoginResponse {
 
     private String accessToken;
     private String refreshToken;
-    private UsuarioDto usuario;
-    private List<Map<String, Object>> rolesPorCondominio;
-    private List<Map<String, Object>> rolesPorUnidad;
-    private String userRole;
-    
-    public String getUserRole() { return userRole; }
-    public void setUserRole(String userRole) { this.userRole = userRole; }
+    private UserDto usuario;
 
-    public String getAccessToken() { return accessToken; }
-    public void setAccessToken(String accessToken) { this.accessToken = accessToken; }
+    // ====== GETTERS Y SETTERS ======
 
-    public String getRefreshToken() { return refreshToken; }
-    public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }
+    public String getAccessToken() {
+        return accessToken;
+    }
 
-    public UsuarioDto getUsuario() { return usuario; }
-    public void setUsuario(UsuarioDto usuario) { this.usuario = usuario; }
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+    }
 
-    public List<Map<String, Object>> getRolesPorCondominio() { return rolesPorCondominio; }
-    public void setRolesPorCondominio(List<Map<String, Object>> rolesPorCondominio) { this.rolesPorCondominio = rolesPorCondominio; }
+    public String getRefreshToken() {
+        return refreshToken;
+    }
 
-    public List<Map<String, Object>> getRolesPorUnidad() { return rolesPorUnidad; }
-    public void setRolesPorUnidad(List<Map<String, Object>> rolesPorUnidad) { this.rolesPorUnidad = rolesPorUnidad; }
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
+
+    public UserDto getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(UserDto usuario) {
+        this.usuario = usuario;
+    }
 }

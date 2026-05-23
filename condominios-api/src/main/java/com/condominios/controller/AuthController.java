@@ -7,6 +7,10 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Controlador REST para autenticación.
+ * Expone el endpoint POST /auth/login.
+ */
 @RestController
 @RequestMapping("/auth")
 @CrossOrigin(origins = "*")

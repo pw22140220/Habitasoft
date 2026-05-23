@@ -1,6 +1,6 @@
 package com.condominios.security;
 
-import com.condominios.model.Usuario;
+import com.condominios.model.User;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -13,6 +13,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Servicio para generar y validar tokens JWT.
+ * Utiliza la librería jjwt (io.jsonwebtoken).
+ */
 @Service
 public class JwtService {
 
@@ -30,33 +34,36 @@ public class JwtService {
         this.refreshTokenExpirationMs = refreshTokenExpirationMs;
     }
 
-    public String generateAccessToken(Usuario usuario) {
+    /**
+     * Genera un access token JWT con los datos del usuario.
+     */
+    public String generateAccessToken(User user) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("email", usuario.getEmail());
-        claims.put("nombre", usuario.getNombre());
+        claims.put("email", user.getEmail());
+        claims.put("nombre", user.getNombre());
+        claims.put("rol", user.getRol().name());
 
         long now = System.currentTimeMillis();
-        Date issuedAt = new Date(now);
-        Date expiration = new Date(now + accessTokenExpirationMs);
 
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(String.valueOf(usuario.getUsuarioId()))
-                .setIssuedAt(issuedAt)
-                .setExpiration(expiration)
+                .setSubject(String.valueOf(user.getId()))
+                .setIssuedAt(new Date(now))
+                .setExpiration(new Date(now + accessTokenExpirationMs))
                 .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    public String generateRefreshToken(Usuario usuario) {
+    /**
+     * Genera un refresh token JWT (vida más larga, sin claims adicionales).
+     */
+    public String generateRefreshToken(User user) {
         long now = System.currentTimeMillis();
-        Date issuedAt = new Date(now);
-        Date expiration = new Date(now + refreshTokenExpirationMs);
 
         return Jwts.builder()
-                .setSubject(String.valueOf(usuario.getUsuarioId()))
-                .setIssuedAt(issuedAt)
-                .setExpiration(expiration)
+                .setSubject(String.valueOf(user.getId()))
+                .setIssuedAt(new Date(now))
+                .setExpiration(new Date(now + refreshTokenExpirationMs))
                 .claim("type", "refresh")
                 .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();

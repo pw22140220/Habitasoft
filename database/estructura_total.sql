@@ -1,607 +1,86 @@
--- =========================================
--- CREACIÓN DE BASE DE DATOS
--- =========================================
+-- Estructura Inicial de HabitaSoft
 CREATE DATABASE IF NOT EXISTS habitasoft_db;
 USE habitasoft_db;
 
--- =========================================
--- TABLA USUARIOS
--- =========================================
+-- Tabla de Usuarios (Admin, Residente, Guardia)
 CREATE TABLE Usuarios (
     id INT PRIMARY KEY AUTO_INCREMENT,
-
     nombre VARCHAR(100) NOT NULL,
-
     email VARCHAR(100) UNIQUE NOT NULL,
-
     password_hash VARCHAR(255) NOT NULL,
-
     telefono VARCHAR(20),
-
-    rol ENUM(
-        'administrador',
-        'residente',
-        'guardia'
-    ) NOT NULL,
-
-    fecha_creacion TIMESTAMP
-    DEFAULT CURRENT_TIMESTAMP
+    rol ENUM('administrador', 'residente', 'guardia') NOT NULL,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- =========================================
--- TABLA CONDOMINIOS
--- =========================================
+-- Tabla de Condominios y Unidades
 CREATE TABLE Condominios (
     id INT PRIMARY KEY AUTO_INCREMENT,
-
     nombre VARCHAR(150) NOT NULL,
-
     direccion TEXT
 );
 
--- =========================================
--- TABLA UNIDADES
--- =========================================
 CREATE TABLE Unidades (
     id INT PRIMARY KEY AUTO_INCREMENT,
-
-    condominio_id INT NOT NULL,
-
+    condominio_id INT,
     numero_unidad VARCHAR(20) NOT NULL,
-
-    FOREIGN KEY (condominio_id)
-    REFERENCES Condominios(id)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE
+    FOREIGN KEY (condominio_id) REFERENCES Condominios(id)
 );
 
--- =========================================
--- RELACIÓN RESIDENTE - UNIDAD
--- =========================================
 CREATE TABLE Residente_Unidad (
-
     residente_id INT,
-
     unidad_id INT,
-
     PRIMARY KEY (residente_id, unidad_id),
-
-    FOREIGN KEY (residente_id)
-    REFERENCES Usuarios(id)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-
-    FOREIGN KEY (unidad_id)
-    REFERENCES Unidades(id)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE
+    FOREIGN KEY (residente_id) REFERENCES Usuarios(id),
+    FOREIGN KEY (unidad_id) REFERENCES Unidades(id)
 );
 
--- =========================================
--- TABLA AMENIDADES
--- =========================================
+-- Amenidades y Reservas
 CREATE TABLE Amenidades (
     id INT PRIMARY KEY AUTO_INCREMENT,
-
-    condominio_id INT NOT NULL,
-
+    condominio_id INT,
     nombre VARCHAR(100) NOT NULL,
-
     capacidad_maxima INT,
-
-    FOREIGN KEY (condominio_id)
-    REFERENCES Condominios(id)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE
+    FOREIGN KEY (condominio_id) REFERENCES Condominios(id)
 );
 
--- =========================================
--- TABLA RESERVACIONES
--- =========================================
 CREATE TABLE Reservaciones (
     id INT PRIMARY KEY AUTO_INCREMENT,
-
-    amenidad_id INT NOT NULL,
-
-    residente_id INT NOT NULL,
-
-    fecha_hora_inicio DATETIME NOT NULL,
-
-    fecha_hora_fin DATETIME NOT NULL,
-
-    estado ENUM(
-        'confirmada',
-        'pendiente',
-        'cancelada'
-    ) DEFAULT 'confirmada',
-
-    FOREIGN KEY (amenidad_id)
-    REFERENCES Amenidades(id)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-
-    FOREIGN KEY (residente_id)
-    REFERENCES Usuarios(id)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE
+    amenidad_id INT,
+    residente_id INT,
+    fecha_hora_inicio DATETIME,
+    fecha_hora_fin DATETIME,
+    estado ENUM('confirmada', 'pendiente', 'cancelada') DEFAULT 'confirmada',
+    FOREIGN KEY (amenidad_id) REFERENCES Amenidades(id),
+    FOREIGN KEY (residente_id) REFERENCES Usuarios(id)
 );
 
--- =========================================
--- TABLA PASES DE VISITA
--- =========================================
+-- Seguridad (QRs e Incidentes)
 CREATE TABLE PasesDeVisita (
     id INT PRIMARY KEY AUTO_INCREMENT,
-
-    residente_id INT NOT NULL,
-
+    residente_id INT,
     nombre_visitante VARCHAR(100),
-
     codigo_qr VARCHAR(255) UNIQUE,
-
     fecha_validez DATE,
-
-    estado ENUM(
-        'activo',
-        'usado',
-        'expirado'
-    ) DEFAULT 'activo',
-
-    FOREIGN KEY (residente_id)
-    REFERENCES Usuarios(id)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE
+    estado ENUM('activo', 'usado', 'expirado') DEFAULT 'activo',
+    FOREIGN KEY (residente_id) REFERENCES Usuarios(id)
 );
 
--- =========================================
--- TABLA INCIDENTES
--- =========================================
 CREATE TABLE Incidentes (
     id INT PRIMARY KEY AUTO_INCREMENT,
-
-    reportado_por_id INT NOT NULL,
-
+    reportado_por_id INT,
     titulo VARCHAR(150),
-
     descripcion TEXT,
-
-    fecha_hora_incidente TIMESTAMP
-    DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (reportado_por_id)
-    REFERENCES Usuarios(id)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE
+    fecha_hora_incidente TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (reportado_por_id) REFERENCES Usuarios(id)
 );
-
--- =========================================
--- TABLA NOTIFICACIONES
--- =========================================
-CREATE TABLE Notificaciones (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-
-    destinatario_id INT NOT NULL,
-
-    tipo ENUM(
-        'alerta',
-        'recordatorio_pago'
-    ),
-
-    mensaje TEXT,
-
-    leido BOOLEAN DEFAULT FALSE,
-
-    fecha_envio TIMESTAMP
-    DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (destinatario_id)
-    REFERENCES Usuarios(id)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE
-);
-
--- =========================================
--- TABLA PAGOS
--- =========================================
-CREATE TABLE Pagos (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-
-    residente_id INT NOT NULL,
-
-    monto DECIMAL(10,2) NOT NULL,
-
-    fecha_pago TIMESTAMP
-    DEFAULT CURRENT_TIMESTAMP,
-
-    metodo_pago ENUM(
-        'transferencia',
-        'tarjeta',
-        'efectivo'
-    ),
-
-    estado ENUM(
-        'pendiente',
-        'pagado',
-        'vencido'
-    ) DEFAULT 'pendiente',
-
-    FOREIGN KEY (residente_id)
-    REFERENCES Usuarios(id)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE
-);
-
--- =========================================
--- CHECK CONSTRAINTS
--- =========================================
-ALTER TABLE Amenidades
-ADD CONSTRAINT chk_capacidad
-CHECK (capacidad_maxima > 0);
-
--- =========================================
--- ÍNDICES
--- =========================================
-
--- Usuarios
-CREATE INDEX idx_usuario_rol
-ON Usuarios(rol);
-
--- Unidades
-CREATE INDEX idx_unidad_condominio
-ON Unidades(condominio_id);
-
-CREATE INDEX idx_unidad_condominio_numero
-ON Unidades(condominio_id, numero_unidad);
-
--- Amenidades
-CREATE INDEX idx_amenidad_condominio
-ON Amenidades(condominio_id);
-
--- Reservaciones
-CREATE INDEX idx_reservacion_amenidad
-ON Reservaciones(amenidad_id);
-
-CREATE INDEX idx_reservacion_residente
-ON Reservaciones(residente_id);
-
-CREATE INDEX idx_reservacion_fechas
-ON Reservaciones(
-    fecha_hora_inicio,
-    fecha_hora_fin
-);
-
-CREATE INDEX idx_reservacion_amenidad_fecha
-ON Reservaciones(
-    amenidad_id,
-    fecha_hora_inicio
-);
-
--- Pases QR
-CREATE INDEX idx_qr_codigo
-ON PasesDeVisita(codigo_qr);
-
-CREATE INDEX idx_qr_estado
-ON PasesDeVisita(estado);
-
--- Incidentes
-CREATE INDEX idx_incidente_usuario
-ON Incidentes(reportado_por_id);
-
-CREATE INDEX idx_incidente_fecha
-ON Incidentes(fecha_hora_incidente);
 
 -- Notificaciones
-CREATE INDEX idx_notificacion_destinatario
-ON Notificaciones(destinatario_id);
-
-CREATE INDEX idx_notificacion_leido
-ON Notificaciones(leido);
-
-CREATE INDEX idx_notificacion_usuario_leido
-ON Notificaciones(
-    destinatario_id,
-    leido
-);
-
--- Pagos
-CREATE INDEX idx_pago_residente
-ON Pagos(residente_id);
-
-CREATE INDEX idx_pago_estado
-ON Pagos(estado);
-
--- =========================================
--- VISTAS (VIEWS)
--- =========================================
-
--- Vista residentes y unidades
-CREATE VIEW Vista_Residentes_Unidades AS
-SELECT
-    u.id AS id_residente,
-    u.nombre AS residente,
-    u.email,
-    un.numero_unidad,
-    c.nombre AS condominio
-FROM Usuarios u
-INNER JOIN Residente_Unidad ru
-    ON u.id = ru.residente_id
-INNER JOIN Unidades un
-    ON ru.unidad_id = un.id
-INNER JOIN Condominios c
-    ON un.condominio_id = c.id
-WHERE u.rol = 'residente';
-
--- Vista reservaciones
-CREATE VIEW Vista_Reservaciones AS
-SELECT
-    r.id,
-    a.nombre AS amenidad,
-    u.nombre AS residente,
-    r.fecha_hora_inicio,
-    r.fecha_hora_fin,
-    r.estado
-FROM Reservaciones r
-INNER JOIN Amenidades a
-    ON r.amenidad_id = a.id
-INNER JOIN Usuarios u
-    ON r.residente_id = u.id;
-
--- Vista incidentes
-CREATE VIEW Vista_Incidentes AS
-SELECT
-    i.id,
-    u.nombre AS reportado_por,
-    i.titulo,
-    i.descripcion,
-    i.fecha_hora_incidente
-FROM Incidentes i
-INNER JOIN Usuarios u
-    ON i.reportado_por_id = u.id;
-
--- Vista pagos
-CREATE VIEW Vista_Pagos AS
-SELECT
-    p.id,
-    u.nombre AS residente,
-    p.monto,
-    p.metodo_pago,
-    p.estado,
-    p.fecha_pago
-FROM Pagos p
-INNER JOIN Usuarios u
-    ON p.residente_id = u.id;
-
--- =========================================
--- PROCEDIMIENTO ALMACENADO
--- =========================================
-
-DELIMITER //
-
-CREATE PROCEDURE CrearReservacion(
-    IN p_amenidad_id INT,
-    IN p_residente_id INT,
-    IN p_inicio DATETIME,
-    IN p_fin DATETIME
-)
-BEGIN
-
-    DECLARE conflicto INT;
-
-    -- Validar fechas
-    IF p_inicio >= p_fin THEN
-
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT =
-        'La fecha de inicio debe ser menor a la fecha final';
-
-    ELSE
-
-        -- Validar conflictos
-        SELECT COUNT(*)
-        INTO conflicto
-        FROM Reservaciones
-        WHERE amenidad_id = p_amenidad_id
-        AND estado = 'confirmada'
-        AND (
-            p_inicio < fecha_hora_fin
-            AND
-            p_fin > fecha_hora_inicio
-        );
-
-        -- Si hay conflicto
-        IF conflicto > 0 THEN
-
-            SIGNAL SQLSTATE '45000'
-            SET MESSAGE_TEXT =
-            'La amenidad ya esta reservada en ese horario';
-
-        ELSE
-
-            -- Crear reservación
-            INSERT INTO Reservaciones(
-                amenidad_id,
-                residente_id,
-                fecha_hora_inicio,
-                fecha_hora_fin,
-                estado
-            )
-            VALUES(
-                p_amenidad_id,
-                p_residente_id,
-                p_inicio,
-                p_fin,
-                'confirmada'
-            );
-
-        END IF;
-
-    END IF;
-
-END //
-
-DELIMITER ;
-
--- =========================================
--- TRIGGER NOTIFICACIÓN RESERVA
--- =========================================
-
-DELIMITER //
-
-CREATE TRIGGER tr_notificacion_reserva
-AFTER INSERT ON Reservaciones
-FOR EACH ROW
-BEGIN
-
-    DECLARE nombreAmenidad VARCHAR(100);
-
-    SELECT nombre
-    INTO nombreAmenidad
-    FROM Amenidades
-    WHERE id = NEW.amenidad_id;
-
-    INSERT INTO Notificaciones(
-        destinatario_id,
-        tipo,
-        mensaje
-    )
-    VALUES(
-        NEW.residente_id,
-        'alerta',
-        CONCAT(
-            'Tu reservacion para ',
-            nombreAmenidad,
-            ' fue confirmada.'
-        )
-    );
-
-END //
-
-DELIMITER ;
-
--- =========================================
--- TRANSACCIÓN DE EJEMPLO
--- =========================================
-
-START TRANSACTION;
-
-INSERT INTO Usuarios(
-    nombre,
-    email,
-    password_hash,
-    telefono,
-    rol
-)
-VALUES(
-    'Juan Pérez',
-    'juan@example.com',
-    '123456HASH',
-    '7221234567',
-    'residente'
-);
-
-COMMIT;
-
--- Si ocurre error:
--- ROLLBACK;
-
--- =========================================
--- DATOS DE PRUEBA
--- =========================================
-
--- Condominio
-INSERT INTO Condominios(
-    nombre,
-    direccion
-)
-VALUES(
-    'Residencial Las Flores',
-    'Toluca, Estado de México'
-);
-
--- Unidad
-INSERT INTO Unidades(
-    condominio_id,
-    numero_unidad
-)
-VALUES(
-    1,
-    'A-101'
-);
-
--- Amenidad
-INSERT INTO Amenidades(
-    condominio_id,
-    nombre,
-    capacidad_maxima
-)
-VALUES(
-    1,
-    'Alberca',
-    30
-);
-
--- Usuario residente
-INSERT INTO Usuarios(
-    nombre,
-    email,
-    password_hash,
-    telefono,
-    rol
-)
-VALUES(
-    'Carlos López',
-    'carlos@example.com',
-    'HASH456',
-    '7220001111',
-    'residente'
-);
-
--- Relación residente-unidad
-INSERT INTO Residente_Unidad(
-    residente_id,
-    unidad_id
-)
-VALUES(
-    2,
-    1
-);
-
--- Usuario administrador
-INSERT INTO Usuarios(
-    nombre,
-    email,
-    password_hash,
-    telefono,
-    rol
-)
-VALUES(
-    'Administrador General',
-    'admin@habitasoft.com',
-    'HASH_ADMIN',
-    '7220000000',
-    'administrador'
-);
-
--- Pago de prueba
-INSERT INTO Pagos(
-    residente_id,
-    monto,
-    metodo_pago,
-    estado
-)
-VALUES(
-    2,
-    1500.00,
-    'transferencia',
-    'pagado'
-);
-
--- =========================================
--- EJEMPLO DE USO DEL PROCEDIMIENTO
--- =========================================
-
-CALL CrearReservacion(
-    1,
-    2,
-    '2026-05-20 18:00:00',
-    '2026-05-20 20:00:00'
+CREATE TABLE Notificaciones (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    destinatario_id INT,
+    tipo ENUM('alerta', 'recordatorio_pago'),
+    mensaje TEXT,
+    leido BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (destinatario_id) REFERENCES Usuarios(id)
 );

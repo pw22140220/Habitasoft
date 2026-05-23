@@ -14,6 +14,20 @@
 ## 2. Convenciones de Código
 - **Idioma:** Código, variables y nombres de archivos/clases en Inglés. Textos de la Interfaz (UI) en Español.
 - **Comentarios:** OBLIGATORIO explicar el código. Deja comentarios detallados explicando qué hace cada función compleja para que el Director (yo) pueda entenderlo.
+## 📂 Estructura del Proyecto Integral (Rutas)
+- **Base de Datos (MySQL):** `./database/estructura_total.sql`
+- **Migraciones:** `./database/migraciones/`
+- **Backend (Java):** `./condominios-api/`
+- **Frontend (Flutter):** `./habitasoft/`
+
+## ☕ Backend (Java) — Reglas para colaborar
+- El backend expone una **API REST JSON** consumida por Flutter.
+- **No** conectar Flutter directamente a MySQL.
+- Si se requiere cambiar la base de datos:
+  1) crear migración en `./database/migraciones/`
+  2) actualizar `./database/estructura_total.sql`
+  3) actualizar el backend Java para reflejar el cambio (DTO/Entity/Repository/Controller según aplique)
+- El agente **solo** debe modificar código del backend cuando el usuario lo pida explícitamente.
 
 ## 3. Patrones y Estructuras de Proyecto
 Basado en la estructura actual del proyecto:

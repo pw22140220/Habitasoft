@@ -32,7 +32,8 @@ class AuthService {
     }
 
     try {
-      final url = Uri.parse('$_baseUrl/auth/login');
+      // Endpoint actual del backend: POST /api/auth/login
+      final url = Uri.parse('$_baseUrl/api/auth/login');
 
       final response = await http
           .post(
@@ -49,7 +50,29 @@ class AuthService {
         final usuario = data['usuario'] as Map<String, dynamic>;
         final userName = usuario['nombre'] as String;
         // Por defecto, asumimos rol de residente si no viene en la respuesta
-        final userRole = usuario['rol'] as String? ?? 'guard';
+        /*
+         * Mapear el rol que devuelve el backend (español, minúsculas)
+         * al formato que espera el router del frontend (inglés).
+         *
+         * Backend       → Frontend
+         * "administrador" → "admin"
+         * "residente"     → "resident"
+         * "guardia"       → "guard"
+         */
+        String roleMap(String backendRole) {
+          switch (backendRole) {
+            case 'administrador':
+              return 'admin';
+            case 'residente':
+              return 'resident';
+            case 'guardia':
+              return 'guard';
+            default:
+              return 'resident'; // fallback seguro
+          }
+        }
+
+        final userRole = roleMap(usuario['rol'] as String? ?? 'residente');
 
         return LoginResponse(userName: userName, userRole: userRole);
       } else if (response.statusCode == 400) {
@@ -66,15 +89,16 @@ class AuthService {
       print('Error de conexión: $e');
       print('Usando datos mock para desarrollo...');
 
-      // Datos mock para desarrollo
+      // Datos mock para desarrollo (coinciden con los seeders del backend)
       if (email == 'admin@habitasoft.com' && password == 'admin123') {
-        return LoginResponse(userName: 'Administrador', userRole: 'admin');
-      } else if (email == 'usuario@condominio.com' &&
-          password == 'usuario123') {
+        return LoginResponse(
+          userName: 'Administrador General',
+          userRole: 'admin',
+        );
+      } else if (email == 'juan@example.com' && password == 'juan123') {
         return LoginResponse(userName: 'Juan Pérez', userRole: 'resident');
-      } else if (email == 'vigilante@condominio.com' &&
-          password == 'vigilante123') {
-        return LoginResponse(userName: 'Carlos Rodríguez', userRole: 'guard');
+      } else if (email == 'carlos@example.com' && password == 'carlos123') {
+        return LoginResponse(userName: 'Carlos López', userRole: 'resident');
       } else {
         throw AuthException('Correo o contraseña incorrectos (modo mock).');
       }

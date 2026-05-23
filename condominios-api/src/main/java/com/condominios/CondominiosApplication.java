@@ -11,8 +11,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
  * Punto de entrada de la aplicación Spring Boot.
+ *
  * Incluye un CommandLineRunner para sembrar datos de prueba
- * si la tabla Usuarios está vacía.
+ * si la tabla Usuarios está vacía. Cada usuario se crea con
+ * su rol correspondiente para que el frontend pueda distinguirlos.
  */
 @SpringBootApplication
 public class CondominiosApplication {
@@ -22,24 +24,24 @@ public class CondominiosApplication {
     }
 
     /**
-     * Crea usuarios de prueba al iniciar la aplicación si no existen.
-     * Lee la contraseña desde la variable de entorno HABITASOFT_DEFAULT_PASSWORD
-     * o usa "admin123" como valor por defecto.
+     * Crea usuarios de prueba al iniciar la aplicación (solo la primera vez).
+     *
+     * Usuarios creados:
+     *   admin@habitasoft.com / admin123   → rol: administrador
+     *   juan@example.com     / juan123    → rol: residente
+     *   carlos@example.com   / carlos123  → rol: residente
      */
     @Bean
     public CommandLineRunner initData(UserRepository userRepository,
                                        PasswordEncoder passwordEncoder) {
         return args -> {
 
-            String defaultPassword = System.getenv().getOrDefault(
-                    "HABITASOFT_DEFAULT_PASSWORD", "admin123");
-
             crearUsuarioSiNoExiste(
                     "Administrador General",
                     "admin@habitasoft.com",
                     "7220000000",
                     Rol.administrador,
-                    defaultPassword,
+                    "admin123",
                     userRepository,
                     passwordEncoder
             );
@@ -49,7 +51,7 @@ public class CondominiosApplication {
                     "juan@example.com",
                     "7221234567",
                     Rol.residente,
-                    "123456HASH",
+                    "juan123",
                     userRepository,
                     passwordEncoder
             );
@@ -59,7 +61,7 @@ public class CondominiosApplication {
                     "carlos@example.com",
                     "7220001111",
                     Rol.residente,
-                    "HASH456",
+                    "carlos123",
                     userRepository,
                     passwordEncoder
             );
@@ -92,6 +94,6 @@ public class CondominiosApplication {
 
         userRepository.save(user);
 
-        System.out.println("Usuario creado: " + email);
+        System.out.println("Usuario creado: " + email + " / rol: " + rol);
     }
 }

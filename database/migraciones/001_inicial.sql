@@ -229,6 +229,23 @@ CREATE TABLE Pagos (
     ON DELETE CASCADE
     ON UPDATE CASCADE
 );
+-- =========================================
+-- TABLA ALERTAS (comunicados masivos del admin)
+-- =========================================
+CREATE TABLE IF NOT EXISTS Alertas (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    titulo VARCHAR(100) NOT NULL,
+    mensaje TEXT NOT NULL,
+    prioridad ENUM('ALTA', 'MEDIA', 'BAJA') NOT NULL,
+    condominio_id BIGINT NULL COMMENT 'NULL = todos los condominios',
+    creado_por_id BIGINT NOT NULL,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_expiracion TIMESTAMP NULL,
+    activa BOOLEAN DEFAULT TRUE,
+    
+    FOREIGN KEY (creado_por_id) REFERENCES Usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY (condominio_id) REFERENCES Condominios(id) ON DELETE CASCADE
+);
 
 -- =========================================
 -- CHECK CONSTRAINTS
@@ -308,7 +325,10 @@ ON Pagos(residente_id);
 
 CREATE INDEX idx_pago_estado
 ON Pagos(estado);
-
+-- Alertas
+CREATE INDEX idx_alertas_condominio ON Alertas(condominio_id);
+CREATE INDEX idx_alertas_activa ON Alertas(activa);
+CREATE INDEX idx_alertas_fecha_expiracion ON Alertas(fecha_expiracion);
 -- =========================================
 -- VISTAS (VIEWS)
 -- =========================================

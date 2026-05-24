@@ -1,56 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/alerta_model.dart';
 import 'admin_state.dart';
 import 'admin_condominiums_screen.dart';
 
-// Modelo para representar una alerta
-class Alert {
-  final String id;
-  final String title;
-  final String message;
-  final DateTime date;
-  final String priority; // 'high', 'medium', 'low'
-  final bool sent;
-
-  Alert({
-    required this.id,
-    required this.title,
-    required this.message,
-    required this.date,
-    required this.priority,
-    required this.sent,
-  });
-
-  // Método para obtener el color según la prioridad
-  Color getPriorityColor() {
-    switch (priority) {
-      case 'high':
-        return Colors.red;
-      case 'medium':
-        return Colors.orange;
-      case 'low':
-        return Colors.blue;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  // Método para obtener el texto de prioridad
-  String getPriorityText() {
-    switch (priority) {
-      case 'high':
-        return 'Alta';
-      case 'medium':
-        return 'Media';
-      case 'low':
-        return 'Baja';
-      default:
-        return 'Normal';
-    }
-  }
-}
-
-// Pantalla para gestionar alertas del administrador
 class AdminAlertsScreen extends StatefulWidget {
   const AdminAlertsScreen({super.key});
 
@@ -59,47 +12,19 @@ class AdminAlertsScreen extends StatefulWidget {
 }
 
 class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
-  // Mock data para alertas
-  final List<Alert> _alerts = [
-    Alert(
-      id: '1',
-      title: 'Mantenimiento programado',
-      message:
-          'El próximo sábado se realizará mantenimiento en el ascensor principal',
-      date: DateTime.now().subtract(const Duration(days: 1)),
-      priority: 'high',
-      sent: true,
-    ),
-    Alert(
-      id: '2',
-      title: 'Reunión de condominio',
-      message: 'Se convoca a reunión extraordinaria el próximo viernes',
-      date: DateTime.now().subtract(const Duration(days: 3)),
-      priority: 'medium',
-      sent: true,
-    ),
-    Alert(
-      id: '3',
-      title: 'Corte de agua',
-      message: 'Habrá corte de agua programado para mantenimiento',
-      date: DateTime.now().subtract(const Duration(days: 5)),
-      priority: 'high',
-      sent: true,
-    ),
-    Alert(
-      id: '4',
-      title: 'Nuevas reglas de estacionamiento',
-      message: 'Se implementarán nuevas reglas a partir del próximo mes',
-      date: DateTime.now().subtract(const Duration(days: 7)),
-      priority: 'low',
-      sent: true,
-    ),
-  ];
-
-  // Controladores para el formulario
   final _titleController = TextEditingController();
   final _messageController = TextEditingController();
-  String _selectedPriority = 'medium';
+  String _selectedPriority = 'MEDIA';
+  DateTime? _selectedExpiration;
+  int? _lastCondominioId;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _recargarSiCambioCondominio();
+    });
+  }
 
   @override
   void dispose() {
@@ -108,10 +33,89 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
     super.dispose();
   }
 
+  void _recargarSiCambioCondominio() {
+    if (!mounted) return;
+    final adminState = context.read<AdminState>();
+    final condominioId = adminState.selectedCondominio?.id;
+    if (condominioId != null && condominioId != _lastCondominioId) {
+      _lastCondominioId = condominioId;
+      adminState.cargarAlertas(condominioId: condominioId);
+    }
+  }
+
+  void _recargarForzada(AdminState adminState) {
+    final condominioId = adminState.selectedCondominio?.id;
+    if (condominioId != null) {
+      _lastCondominioId = condominioId;
+      adminState.cargarAlertas(condominioId: condominioId);
+    }
+  }
+
+  String _prioridadToBackend(String prioridad) {
+    switch (prioridad) {
+      case 'ALTA':
+        return 'ALTA';
+      case 'MEDIA':
+        return 'MEDIA';
+      case 'BAJA':
+        return 'BAJA';
+      default:
+        return 'MEDIA';
+    }
+  }
+
+  String _prioridadToLabel(String prioridad) {
+    switch (prioridad) {
+      case 'ALTA':
+        return 'Alta';
+      case 'MEDIA':
+        return 'Media';
+      case 'BAJA':
+        return 'Baja';
+      default:
+        return prioridad;
+    }
+  }
+
+  String _formatFecha(String? fecha) {
+    if (fecha == null || fecha.length < 10) return '';
+    final parts = fecha.substring(0, 10).split('-');
+    if (parts.length != 3) return fecha.substring(0, 10);
+    return '${parts[2]}/${parts[1]}/${parts[0]}';
+  }
+
+  String _formatDateTime(String? fecha) {
+    if (fecha == null || fecha.length < 16) return '';
+    final dateParts = fecha.substring(0, 10).split('-');
+    if (dateParts.length != 3) return fecha.substring(0, 10);
+    final time = fecha.substring(11, 16);
+    return '${dateParts[2]}/${dateParts[1]}/${dateParts[0]} $time';
+  }
+
+  Color _prioridadColor(String prioridad) {
+    switch (prioridad) {
+      case 'ALTA':
+        return Colors.red;
+      case 'MEDIA':
+        return Colors.orange;
+      case 'BAJA':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final adminState = Provider.of<AdminState>(context);
+    final adminState = context.watch<AdminState>();
     final selectedCondominium = adminState.selectedCondominio;
+
+    final currentId = selectedCondominium?.id;
+    if (currentId != null && currentId != _lastCondominioId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _recargarSiCambioCondominio();
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -124,7 +128,11 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
           if (!adminState.hasSelectedCondominium) {
             _showNoCondominiumDialog(context);
           } else {
-            _showNewAlertDialog(context);
+            _titleController.clear();
+            _messageController.clear();
+            _selectedPriority = 'MEDIA';
+            _selectedExpiration = null;
+            _showAlertFormDialog(context, adminState, null);
           }
         },
         backgroundColor: Colors.green[700],
@@ -132,7 +140,6 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
       ),
       body: Column(
         children: [
-          // Indicador de condominio seleccionado
           if (selectedCondominium != null)
             Container(
               padding: const EdgeInsets.all(16),
@@ -146,7 +153,7 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Enviando alertas a: ${selectedCondominium.nombre}',
+                      'Alertas de: ${selectedCondominium.nombre}',
                       style: TextStyle(
                         color: Colors.green[800],
                         fontWeight: FontWeight.w500,
@@ -185,7 +192,7 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Selecciona un condominio para enviar alertas',
+                      'Selecciona un condominio para ver alertas',
                       style: TextStyle(
                         color: Colors.orange[800],
                         fontWeight: FontWeight.w500,
@@ -211,44 +218,53 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
                 ],
               ),
             ),
-
-          // Lista de alertas
-          Expanded(
-            child:
-                _alerts.isEmpty
-                    ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.notifications_none,
-                            size: 80,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'No hay alertas enviadas',
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
-                          ),
-                        ],
+          if (adminState.isLoading)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            Expanded(
+              child:
+                  adminState.alertas.isEmpty
+                      ? const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.notifications_none,
+                              size: 80,
+                              color: Colors.grey,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'No hay alertas',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                      : RefreshIndicator(
+                        onRefresh: () async => _recargarForzada(adminState),
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: adminState.alertas.length,
+                          itemBuilder: (context, index) {
+                            final alerta = adminState.alertas[index];
+                            return _buildAlertCard(alerta, adminState);
+                          },
+                        ),
                       ),
-                    )
-                    : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _alerts.length,
-                      itemBuilder: (context, index) {
-                        final alert = _alerts[index];
-                        return _buildAlertCard(alert);
-                      },
-                    ),
-          ),
+            ),
         ],
       ),
     );
   }
 
-  // Método para construir tarjeta de alerta
-  Widget _buildAlertCard(Alert alert) {
+  Widget _buildAlertCard(Alerta alerta, AdminState adminState) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -269,13 +285,16 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
           width: 50,
           height: 50,
           decoration: BoxDecoration(
-            color: alert.getPriorityColor().withOpacity(0.1),
+            color: _prioridadColor(alerta.prioridad).withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(Icons.notifications, color: alert.getPriorityColor()),
+          child: Icon(
+            Icons.notifications,
+            color: _prioridadColor(alerta.prioridad),
+          ),
         ),
         title: Text(
-          alert.title,
+          alerta.titulo,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         subtitle: Column(
@@ -283,114 +302,101 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
           children: [
             const SizedBox(height: 4),
             Text(
-              alert.message,
+              alerta.mensaje,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: alert.getPriorityColor().withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    alert.getPriorityText(),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: alert.getPriorityColor(),
-                      fontWeight: FontWeight.w500,
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _prioridadColor(alerta.prioridad).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      _prioridadToLabel(alerta.prioridad),
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: _prioridadColor(alerta.prioridad),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Icon(Icons.calendar_today, size: 12, color: Colors.grey[500]),
-                const SizedBox(width: 4),
-                Text(
-                  '${alert.date.day}/${alert.date.month}/${alert.date.year}',
-                  style: TextStyle(fontSize: 10, color: Colors.grey[500]),
-                ),
-                const Spacer(),
-                Icon(
-                  alert.sent ? Icons.check_circle : Icons.error,
-                  size: 16,
-                  color: alert.sent ? Colors.green : Colors.orange,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  alert.sent ? 'Enviada' : 'Pendiente',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: alert.sent ? Colors.green : Colors.orange,
+                  Icon(Icons.calendar_today, size: 12, color: Colors.grey[500]),
+                  const SizedBox(width: 4),
+                  Text(
+                    _formatFecha(alerta.fechaCreacion),
+                    style: TextStyle(fontSize: 10, color: Colors.grey[500]),
                   ),
-                ),
-              ],
+                  if (alerta.fechaExpiracion != null) ...[
+                    const SizedBox(width: 6),
+                    Icon(Icons.schedule, size: 12, color: Colors.red[300]),
+                    const SizedBox(width: 4),
+                    Text(
+                      _formatFecha(alerta.fechaExpiracion),
+                      style: TextStyle(fontSize: 10, color: Colors.red[300]),
+                    ),
+                  ],
+                  const SizedBox(width: 12),
+                ],
+              ),
             ),
           ],
         ),
-        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-        onTap: () {
-          _showAlertDetail(alert);
-        },
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'edit') {
+              _titleController.text = alerta.titulo;
+              _messageController.text = alerta.mensaje;
+              _selectedPriority = alerta.prioridad;
+              _selectedExpiration =
+                  alerta.fechaExpiracion != null
+                      ? DateTime.tryParse(alerta.fechaExpiracion!)
+                      : null;
+              _showAlertFormDialog(context, adminState, alerta);
+            } else if (value == 'delete') {
+              _confirmDelete(context, adminState, alerta);
+            } else if (value == 'view') {
+              _showAlertDetail(context, alerta);
+            }
+          },
+          itemBuilder:
+              (context) => [
+                const PopupMenuItem(value: 'view', child: Text('Ver detalle')),
+                const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Text('Eliminar', style: TextStyle(color: Colors.red)),
+                ),
+              ],
+        ),
+        onTap: () => _showAlertDetail(context, alerta),
       ),
     );
   }
 
-  // Método para mostrar diálogo cuando no hay condominio seleccionado
-  void _showNoCondominiumDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Condominio no seleccionado'),
-          content: const Text(
-            'Debes seleccionar un condominio antes de enviar alertas.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const AdminCondominiumsScreen(),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green[700],
-              ),
-              child: const Text(
-                'Seleccionar Condominio',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // Método para mostrar diálogo de nueva alerta
-  void _showNewAlertDialog(BuildContext context) {
+  void _showAlertFormDialog(
+    BuildContext context,
+    AdminState adminState,
+    Alerta? alertaExistente,
+  ) {
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('Nueva Alerta'),
+              title: Text(
+                alertaExistente != null ? 'Editar Alerta' : 'Nueva Alerta',
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -419,28 +425,58 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
                         border: OutlineInputBorder(),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'high', child: Text('Alta')),
-                        DropdownMenuItem(value: 'medium', child: Text('Media')),
-                        DropdownMenuItem(value: 'low', child: Text('Baja')),
+                        DropdownMenuItem(value: 'ALTA', child: Text('Alta')),
+                        DropdownMenuItem(value: 'MEDIA', child: Text('Media')),
+                        DropdownMenuItem(value: 'BAJA', child: Text('Baja')),
                       ],
                       onChanged: (value) {
-                        setState(() {
+                        setDialogState(() {
                           _selectedPriority = value!;
                         });
                       },
+                    ),
+                    const SizedBox(height: 16),
+                    InkWell(
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate:
+                              _selectedExpiration ??
+                              DateTime.now().add(const Duration(days: 7)),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 365),
+                          ),
+                        );
+                        if (date != null) {
+                          setDialogState(() {
+                            _selectedExpiration = date;
+                          });
+                        }
+                      },
+                      child: InputDecorator(
+                        decoration: const InputDecoration(
+                          labelText: 'Fecha de expiración (opcional)',
+                          border: OutlineInputBorder(),
+                          suffixIcon: Icon(Icons.calendar_month),
+                        ),
+                        child: Text(
+                          _selectedExpiration != null
+                              ? '${_selectedExpiration!.day.toString().padLeft(2, '0')}/${_selectedExpiration!.month.toString().padLeft(2, '0')}/${_selectedExpiration!.year}'
+                              : 'Sin expiración',
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
               actions: [
                 TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
+                  onPressed: () => Navigator.of(context).pop(),
                   child: const Text('Cancelar'),
                 ),
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (_titleController.text.isEmpty ||
                         _messageController.text.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -451,42 +487,64 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
                       return;
                     }
 
-                    // Crear nueva alerta
-                    final newAlert = Alert(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      title: _titleController.text,
-                      message: _messageController.text,
-                      date: DateTime.now(),
-                      priority: _selectedPriority,
-                      sent: true,
-                    );
+                    final condominioId = adminState.selectedCondominio!.id;
+                    final prioridad = _prioridadToBackend(_selectedPriority);
+                    bool exito;
 
-                    // Agregar a la lista
-                    setState(() {
-                      _alerts.insert(0, newAlert);
-                    });
+                    final expiracionStr =
+                        _selectedExpiration != null
+                            ? '${_selectedExpiration!.year.toString().padLeft(4, '0')}-${_selectedExpiration!.month.toString().padLeft(2, '0')}-${_selectedExpiration!.day.toString().padLeft(2, '0')}T23:59:59'
+                            : null;
 
-                    // Limpiar campos
+                    if (alertaExistente != null) {
+                      exito = await adminState.actualizarAlerta(
+                        alertaExistente.id,
+                        _titleController.text,
+                        _messageController.text,
+                        prioridad,
+                        condominioId,
+                        fechaExpiracion: expiracionStr,
+                      );
+                    } else {
+                      exito = await adminState.crearAlerta(
+                        _titleController.text,
+                        _messageController.text,
+                        prioridad,
+                        condominioId,
+                        1,
+                        fechaExpiracion: expiracionStr,
+                      );
+                    }
+
+                    if (!mounted) return;
+                    Navigator.of(context).pop();
                     _titleController.clear();
                     _messageController.clear();
-                    _selectedPriority = 'medium';
+                    _selectedPriority = 'MEDIA';
+                    _selectedExpiration = null;
 
-                    // Cerrar diálogo
-                    Navigator.of(context).pop();
-
-                    // Mostrar mensaje de éxito
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Alerta enviada exitosamente'),
+                      SnackBar(
+                        content: Text(
+                          exito
+                              ? (alertaExistente != null
+                                  ? 'Alerta actualizada'
+                                  : 'Alerta creada')
+                              : 'Error al guardar alerta',
+                        ),
                       ),
                     );
+
+                    _recargarForzada(adminState);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green[700],
                   ),
-                  child: const Text(
-                    'Enviar Alerta',
-                    style: TextStyle(color: Colors.white),
+                  child: Text(
+                    alertaExistente != null
+                        ? 'Guardar Cambios'
+                        : 'Crear Alerta',
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
               ],
@@ -497,19 +555,62 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
     );
   }
 
-  // Método para mostrar detalles de una alerta
-  void _showAlertDetail(Alert alert) {
+  void _confirmDelete(
+    BuildContext context,
+    AdminState adminState,
+    Alerta alerta,
+  ) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(alert.title),
+          title: const Text('Eliminar Alerta'),
+          content: Text(
+            '¿Estás seguro de eliminar la alerta "${alerta.titulo}"?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final exito = await adminState.eliminarAlerta(alerta.id);
+                if (!mounted) return;
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      exito ? 'Alerta eliminada' : 'Error al eliminar alerta',
+                    ),
+                  ),
+                );
+                _recargarForzada(adminState);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text(
+                'Eliminar',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAlertDetail(BuildContext context, Alerta alerta) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(alerta.titulo),
           content: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(alert.message, style: const TextStyle(fontSize: 14)),
+                Text(alerta.mensaje, style: const TextStyle(fontSize: 14)),
                 const SizedBox(height: 20),
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -525,15 +626,15 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
                         children: [
                           Icon(
                             Icons.priority_high,
-                            color: alert.getPriorityColor(),
+                            color: _prioridadColor(alerta.prioridad),
                             size: 16,
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Prioridad: ${alert.getPriorityText()}',
+                            'Prioridad: ${_prioridadToLabel(alerta.prioridad)}',
                             style: TextStyle(
                               fontWeight: FontWeight.w500,
-                              color: alert.getPriorityColor(),
+                              color: _prioridadColor(alerta.prioridad),
                             ),
                           ),
                         ],
@@ -548,42 +649,44 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Fecha: ${alert.date.day}/${alert.date.month}/${alert.date.year}',
+                            'Creada: ${_formatDateTime(alerta.fechaCreacion)}',
                             style: TextStyle(color: Colors.grey[600]),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(
-                            alert.sent ? Icons.check_circle : Icons.error,
-                            color: alert.sent ? Colors.green : Colors.orange,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            alert.sent
-                                ? 'Estado: Enviada'
-                                : 'Estado: Pendiente',
-                            style: TextStyle(
-                              color: alert.sent ? Colors.green : Colors.orange,
+                      if (alerta.fechaExpiracion != null) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.schedule,
+                              color: Colors.red[300],
+                              size: 16,
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Expira: ${_formatDateTime(alerta.fechaExpiracion)}',
+                              style: TextStyle(color: Colors.red[300]),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 8),
                       Row(
                         children: [
                           Icon(
-                            Icons.access_time,
-                            color: Colors.grey[600],
+                            alerta.activa ? Icons.check_circle : Icons.cancel,
+                            color: alerta.activa ? Colors.green : Colors.red,
                             size: 16,
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Hora: ${alert.date.hour.toString().padLeft(2, '0')}:${alert.date.minute.toString().padLeft(2, '0')}',
-                            style: TextStyle(color: Colors.grey[600]),
+                            alerta.activa
+                                ? 'Estado: Activa'
+                                : 'Estado: Inactiva',
+                            style: TextStyle(
+                              color: alerta.activa ? Colors.green : Colors.red,
+                            ),
                           ),
                         ],
                       ),
@@ -598,20 +701,42 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('Cerrar'),
             ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showNoCondominiumDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Condominio no seleccionado'),
+          content: const Text(
+            'Debes seleccionar un condominio para gestionar alertas.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
             ElevatedButton(
               onPressed: () {
-                // TODO: Implementar reenviar alerta
                 Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Alerta reenviada exitosamente'),
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const AdminCondominiumsScreen(),
                   ),
                 );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green[700],
               ),
-              child: const Text('Reenviar'),
+              child: const Text(
+                'Seleccionar Condominio',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         );

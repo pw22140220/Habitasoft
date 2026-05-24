@@ -60,11 +60,21 @@ public class CondominiosApplication {
                     "Carlos López",
                     "carlos@example.com",
                     "7220001111",
-                    Rol.residente,
+                    Rol.guardia,
                     "carlos123",
                     userRepository,
                     passwordEncoder
             );
+            crearUsuarioSiNoExiste(
+                    "Carlos López",
+                    "cesar@example.com",
+                    "7220001111",
+                    Rol.guardia,
+                    "cesar123",
+                    userRepository,
+                    passwordEncoder
+            );
+            
         };
     }
 

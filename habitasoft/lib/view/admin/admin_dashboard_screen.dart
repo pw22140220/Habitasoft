@@ -14,7 +14,7 @@ class AdminDashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final adminState = Provider.of<AdminState>(context);
-    final selectedCondominium = adminState.selectedCondominium;
+    final selectedCondominium = adminState.selectedCondominio;
 
     // Si no hay condominio seleccionado, mostrar estado vacío
     if (!adminState.hasSelectedCondominium) {
@@ -88,7 +88,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   Icon(Icons.apartment, color: Colors.white, size: 20),
                   const SizedBox(width: 8),
                   Text(
-                    selectedCondominium!.name,
+                    selectedCondominium!.nombre,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w500,
@@ -136,14 +136,14 @@ class AdminDashboardScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Condominio: ${selectedCondominium.name}',
+                          'Condominio: ${selectedCondominium.nombre}',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[700],
                           ),
                         ),
                         Text(
-                          '${selectedCondominium.totalResidents} residentes',
+                          selectedCondominium.direccion,
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[700],
@@ -183,7 +183,7 @@ class AdminDashboardScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        selectedCondominium.name,
+                        selectedCondominium.nombre,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -451,8 +451,8 @@ class AdminDashboardScreen extends StatelessWidget {
   // Método para mostrar selector de condominio en modal bottom sheet
   void _showCondominioSelector(BuildContext context) {
     final adminState = Provider.of<AdminState>(context, listen: false);
-    final condominiums = adminState.getCondominiums(context);
-    final selectedCondominium = adminState.selectedCondominium;
+    final condominiums = adminState.condominios;
+    final selectedCondominium = adminState.selectedCondominio;
 
     showModalBottomSheet(
       context: context,
@@ -558,7 +558,7 @@ class AdminDashboardScreen extends StatelessWidget {
                           ),
                         ),
                         title: Text(
-                          condominium.name,
+                          condominium.nombre,
                           style: TextStyle(
                             fontWeight: FontWeight.w500,
                             color:
@@ -568,7 +568,7 @@ class AdminDashboardScreen extends StatelessWidget {
                           ),
                         ),
                         subtitle: Text(
-                          condominium.address,
+                          condominium.direccion,
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],

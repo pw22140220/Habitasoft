@@ -36,67 +36,33 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            JwtAuthenticationFilter jwtAuthFilter) throws Exception {
         http
-            // Deshabilitar CSRF porque usamos JWT (stateless)
             .csrf(csrf -> csrf.disable())
 
-            // Sesión sin estado (cada request lleva su token)
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
 
             .authorizeHttpRequests(auth -> auth
 
-                /*
-                 * =============================================
-                 * RUTAS PÚBLICAS (no requieren token)
-                 * =============================================
-                 */
                 .requestMatchers("/api/auth/login").permitAll()
 
-                /*
-                 * =============================================
-                 * RUTAS SOLO PARA ADMINISTRADOR
-                 * =============================================
-                 */
                 .requestMatchers(
                     "/api/admin/**",
                     "/api/usuarios/**"
                 ).hasRole("ADMINISTRADOR")
 
-                /*
-                 * =============================================
-                 * RUTAS PARA ADMINISTRADOR Y RESIDENTE
-                 * =============================================
-                 */
                 .requestMatchers(
-                    "/api/condominios/**",
                     "/api/pagos/**",
                     "/api/notificaciones/**",
                     "/api/reservaciones/**",
                     "/api/amenidades/**",
-                    "/api/incidentes/**"
+                    "/api/incidentes/**",
+                    "/api/pases-visita/**"
                 ).hasAnyRole("ADMINISTRADOR", "RESIDENTE")
 
-                /*
-                 * =============================================
-                 * RUTAS PARA GUARDIA
-                 * =============================================
-                 */
-                .requestMatchers(
-                    "/api/pases-visita/**",
-                    "/api/incidentes/**"
-                ).hasAnyRole("GUARDIA", "ADMINISTRADOR")
-
-                /*
-                 * =============================================
-                 * CUALQUIER OTRA RUTA requiere autenticación
-                 * (sin importar el rol)
-                 * =============================================
-                 */
                 .anyRequest().authenticated()
             )
 
-            // Registrar el filtro JWT antes del filtro de autenticación de Spring
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

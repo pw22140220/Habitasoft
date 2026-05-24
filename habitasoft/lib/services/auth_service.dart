@@ -12,9 +12,14 @@ class AuthException implements Exception {
 // Modelo para la respuesta de login
 class LoginResponse {
   final String userName;
-  final String userRole; // 'admin', 'resident', 'guard'
+  final String userRole;
+  final String? accessToken;
 
-  LoginResponse({required this.userName, required this.userRole});
+  LoginResponse({
+    required this.userName,
+    required this.userRole,
+    this.accessToken,
+  });
 }
 
 class AuthService {
@@ -73,8 +78,13 @@ class AuthService {
         }
 
         final userRole = roleMap(usuario['rol'] as String? ?? 'residente');
+        final accessToken = data['accessToken'] as String?;
 
-        return LoginResponse(userName: userName, userRole: userRole);
+        return LoginResponse(
+          userName: userName,
+          userRole: userRole,
+          accessToken: accessToken,
+        );
       } else if (response.statusCode == 400) {
         throw AuthException(
           'Datos inválidos. Verifica el correo y la contraseña.',

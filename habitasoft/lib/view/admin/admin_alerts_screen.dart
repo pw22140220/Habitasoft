@@ -111,7 +111,7 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
   @override
   Widget build(BuildContext context) {
     final adminState = Provider.of<AdminState>(context);
-    final selectedCondominium = adminState.selectedCondominium;
+    final selectedCondominium = adminState.selectedCondominio;
 
     return Scaffold(
       appBar: AppBar(
@@ -146,7 +146,7 @@ class _AdminAlertsScreenState extends State<AdminAlertsScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Enviando alertas a: ${selectedCondominium.name}',
+                      'Enviando alertas a: ${selectedCondominium.nombre}',
                       style: TextStyle(
                         color: Colors.green[800],
                         fontWeight: FontWeight.w500,

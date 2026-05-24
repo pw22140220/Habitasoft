@@ -260,7 +260,10 @@ class _HomeScreenState extends State<HomeScreen> {
       // Navegar al AdminShell
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const AdminShell()),
+        MaterialPageRoute(
+          builder:
+              (context) => AdminShell(accessToken: loginResponse.accessToken),
+        ),
       );
     } else if (loginResponse.userRole == 'guard') {
       // Navegar al Dashboard del vigilante

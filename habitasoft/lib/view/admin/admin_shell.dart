@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'admin_state.dart';
 import 'admin_dashboard_screen.dart';
 import 'admin_condominiums_screen.dart';
 import 'admin_alerts_screen.dart';
@@ -6,7 +8,9 @@ import 'admin_profile_screen.dart';
 
 // Shell principal del administrador con navegación por tabs
 class AdminShell extends StatefulWidget {
-  const AdminShell({super.key});
+  final String? accessToken;
+
+  const AdminShell({super.key, this.accessToken});
 
   @override
   State<AdminShell> createState() => _AdminShellState();
@@ -14,6 +18,18 @@ class AdminShell extends StatefulWidget {
 
 class _AdminShellState extends State<AdminShell> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.accessToken != null && mounted) {
+        final adminState = Provider.of<AdminState>(context, listen: false);
+        adminState.setToken(widget.accessToken!);
+        adminState.init(); // ✅ LLAMAR init() DESPUÉS
+      }
+    });
+  }
 
   // Lista de pantallas para el IndexedStack
   final List<Widget> _screens = [

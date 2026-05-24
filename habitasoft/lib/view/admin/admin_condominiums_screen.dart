@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'admin_state.dart';
 
-// Pantalla para listar y seleccionar condominios
 class AdminCondominiumsScreen extends StatefulWidget {
   const AdminCondominiumsScreen({super.key});
 
@@ -24,21 +23,13 @@ class _AdminCondominiumsScreenState extends State<AdminCondominiumsScreen> {
   @override
   Widget build(BuildContext context) {
     final adminState = Provider.of<AdminState>(context);
-    final allCondominiums = adminState.getCondominiums(context);
-    final selectedCondominium = adminState.selectedCondominium;
+    final allCondominiums = adminState.condominios;
+    final selectedCondominium = adminState.selectedCondominio;
 
-    // Filtrar condominios basado en la búsqueda
     final filteredCondominiums =
         _searchQuery.isEmpty
             ? allCondominiums
-            : allCondominiums.where((condominium) {
-              return condominium.name.toLowerCase().contains(
-                    _searchQuery.toLowerCase(),
-                  ) ||
-                  condominium.address.toLowerCase().contains(
-                    _searchQuery.toLowerCase(),
-                  );
-            }).toList();
+            : adminState.searchCondominiums(_searchQuery);
 
     return Scaffold(
       appBar: AppBar(
@@ -46,7 +37,6 @@ class _AdminCondominiumsScreenState extends State<AdminCondominiumsScreen> {
         backgroundColor: Colors.green[700],
         elevation: 2,
         actions: [
-          // Botón para cerrar y regresar
           IconButton(
             icon: const Icon(Icons.close),
             onPressed: () {
@@ -57,7 +47,6 @@ class _AdminCondominiumsScreenState extends State<AdminCondominiumsScreen> {
       ),
       body: Column(
         children: [
-          // Barra de búsqueda
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Container(
@@ -94,7 +83,6 @@ class _AdminCondominiumsScreenState extends State<AdminCondominiumsScreen> {
             ),
           ),
 
-          // Indicador de condominio seleccionado
           if (selectedCondominium != null)
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -120,7 +108,7 @@ class _AdminCondominiumsScreenState extends State<AdminCondominiumsScreen> {
                           ),
                         ),
                         Text(
-                          selectedCondominium.name,
+                          selectedCondominium.nombre,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -134,112 +122,104 @@ class _AdminCondominiumsScreenState extends State<AdminCondominiumsScreen> {
               ),
             ),
 
-          // Lista de condominios
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: filteredCondominiums.length,
-              itemBuilder: (context, index) {
-                final condominium = filteredCondominiums[index];
-                final isSelected = selectedCondominium?.id == condominium.id;
+          if (adminState.isLoading)
+            const Expanded(child: Center(child: CircularProgressIndicator()))
+          else
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: filteredCondominiums.length,
+                itemBuilder: (context, index) {
+                  final condominio = filteredCondominiums[index];
+                  final isSelected = selectedCondominium?.id == condominio.id;
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: isSelected ? Colors.green[50] : Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                    border: Border.all(
-                      color:
-                          isSelected ? Colors.green[200]! : Colors.grey[200]!,
-                    ),
-                  ),
-                  child: ListTile(
-                    leading: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color:
-                            isSelected ? Colors.green[700] : Colors.grey[300],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Icons.apartment,
-                        color: isSelected ? Colors.white : Colors.grey[600],
-                      ),
-                    ),
-                    title: Text(
-                      condominium.name,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color:
-                            isSelected ? Colors.green[800] : Colors.grey[800],
-                      ),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          condominium.address,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.people,
-                              size: 14,
-                              color: Colors.grey[500],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${condominium.totalResidents} residentes',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: isSelected ? Colors.green[50] : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
                         ),
                       ],
+                      border: Border.all(
+                        color:
+                            isSelected ? Colors.green[200]! : Colors.grey[200]!,
+                      ),
                     ),
-                    trailing:
-                        isSelected
-                            ? Icon(Icons.check_circle, color: Colors.green[700])
-                            : const Icon(
-                              Icons.chevron_right,
-                              color: Colors.grey,
+                    child: ListTile(
+                      leading: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color:
+                              isSelected ? Colors.green[700] : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.apartment,
+                          color: isSelected ? Colors.white : Colors.grey[600],
+                        ),
+                      ),
+                      title: Text(
+                        condominio.nombre,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color:
+                              isSelected ? Colors.green[800] : Colors.grey[800],
+                        ),
+                      ),
+                      subtitle: Text(
+                        condominio.direccion,
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isSelected)
+                            Icon(Icons.check_circle, color: Colors.green[700])
+                          else
+                            const Icon(Icons.chevron_right, color: Colors.grey),
+                          IconButton(
+                            icon: Icon(
+                              Icons.edit_outlined,
+                              color: Colors.blue[400],
+                              size: 20,
                             ),
-                    onTap: () {
-                      // Seleccionar el condominio
-                      adminState.selectCondominium(condominium);
-
-                      // Regresar al dashboard
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                );
-              },
+                            onPressed:
+                                () => _showEditCondominiumDialog(
+                                  context,
+                                  condominio,
+                                ),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.delete_outline,
+                              color: Colors.red[400],
+                              size: 20,
+                            ),
+                            onPressed:
+                                () => _confirmarEliminar(context, condominio),
+                          ),
+                        ],
+                      ),
+                      onTap: () {
+                        adminState.selectCondominium(condominio);
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
 
-          // Botón para agregar nuevo condominio
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
-              onPressed: () {
-                // TODO: Implementar agregar nuevo condominio
-                _showAddCondominiumDialog();
-              },
+              onPressed: () => _showAddCondominiumDialog(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green[700],
                 minimumSize: const Size(double.infinity, 50),
@@ -268,67 +248,204 @@ class _AdminCondominiumsScreenState extends State<AdminCondominiumsScreen> {
     );
   }
 
-  // Método para mostrar diálogo de agregar condominio
-  void _showAddCondominiumDialog() {
+  void _confirmarEliminar(BuildContext context, dynamic condominio) {
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Agregar Condominio'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                decoration: const InputDecoration(
-                  labelText: 'Nombre del condominio',
-                  border: OutlineInputBorder(),
-                ),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Eliminar condominio'),
+            content: Text(
+              '¿Estás seguro de eliminar "${condominio.nombre}"?\nEsta acción no se puede deshacer.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Cancelar'),
               ),
-              const SizedBox(height: 16),
-              TextField(
-                decoration: const InputDecoration(
-                  labelText: 'Dirección',
-                  border: OutlineInputBorder(),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  final adminState = Provider.of<AdminState>(
+                    context,
+                    listen: false,
+                  );
+                  final exito = await adminState.eliminarCondominio(
+                    condominio.id,
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          exito
+                              ? 'Condominio eliminado exitosamente'
+                              : 'Error al eliminar condominio',
+                        ),
+                        backgroundColor: exito ? Colors.green : Colors.red,
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red[600],
                 ),
-              ),
-              const SizedBox(height: 16),
-              const TextField(
-                decoration: InputDecoration(
-                  labelText: 'Número de residentes',
-                  border: OutlineInputBorder(),
+                child: const Text(
+                  'Eliminar',
+                  style: TextStyle(color: Colors.white),
                 ),
-                keyboardType: TextInputType.number,
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Implementar lógica para agregar condominio
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Condominio agregado exitosamente'),
+    );
+  }
+
+  void _showEditCondominiumDialog(BuildContext context, dynamic condominio) {
+    final nombreCtrl = TextEditingController(text: condominio.nombre);
+    final direccionCtrl = TextEditingController(text: condominio.direccion);
+
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Editar Condominio'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nombreCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre del condominio',
+                    border: OutlineInputBorder(),
                   ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green[700],
-              ),
-              child: const Text(
-                'Agregar',
-                style: TextStyle(color: Colors.white),
-              ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: direccionCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Dirección',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
             ),
-          ],
-        );
-      },
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final nombre = nombreCtrl.text.trim();
+                  final direccion = direccionCtrl.text.trim();
+                  if (nombre.isEmpty || direccion.isEmpty) return;
+
+                  Navigator.of(ctx).pop();
+                  final adminState = Provider.of<AdminState>(
+                    context,
+                    listen: false,
+                  );
+                  final exito = await adminState.actualizarCondominio(
+                    condominio.id,
+                    nombre,
+                    direccion,
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          exito
+                              ? 'Condominio actualizado exitosamente'
+                              : 'Error al actualizar condominio',
+                        ),
+                        backgroundColor: exito ? Colors.green : Colors.red,
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[700],
+                ),
+                child: const Text(
+                  'Guardar',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showAddCondominiumDialog(BuildContext context) {
+    final nombreCtrl = TextEditingController();
+    final direccionCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Agregar Condominio'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nombreCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre del condominio',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: direccionCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Dirección',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final nombre = nombreCtrl.text.trim();
+                  final direccion = direccionCtrl.text.trim();
+                  if (nombre.isEmpty || direccion.isEmpty) return;
+
+                  Navigator.of(ctx).pop();
+                  final adminState = Provider.of<AdminState>(
+                    context,
+                    listen: false,
+                  );
+                  final exito = await adminState.agregarCondominio(
+                    nombre,
+                    direccion,
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          exito
+                              ? 'Condominio agregado exitosamente'
+                              : 'Error al agregar condominio',
+                        ),
+                        backgroundColor: exito ? Colors.green : Colors.red,
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[700],
+                ),
+                child: const Text(
+                  'Agregar',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
     );
   }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../models/alerta_model.dart';
+import '../../models/amenidad_model.dart';
 import '../../models/condominio_model.dart';
 import '../../services/alerta_service.dart';
+import '../../services/amenidad_service.dart';
 import '../../services/condominio_service.dart';
 
 class AdminState extends ChangeNotifier {
@@ -9,18 +11,21 @@ class AdminState extends ChangeNotifier {
   Condominio? _selectedCondominio;
   List<Condominio> _condominios = [];
   List<Alerta> _alertas = [];
+  List<Amenidad> _amenidades = [];
   bool _isLoading = false;
   String? _error;
 
   Condominio? get selectedCondominio => _selectedCondominio;
   List<Condominio> get condominios => _condominios;
   List<Alerta> get alertas => _alertas;
+  List<Amenidad> get amenidades => _amenidades;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasSelectedCondominium => _selectedCondominio != null;
 
   CondominioService get _condominioService => CondominioService(token: _token);
   AlertaService get _alertaService => AlertaService(token: _token);
+  AmenidadService get _amenidadService => AmenidadService(token: _token);
 
   void setToken(String token) {
     _token = token;
@@ -226,6 +231,84 @@ class AdminState extends ChangeNotifier {
       return true;
     } catch (e) {
       _error = 'Error al eliminar alerta';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<void> cargarAmenidades({int? condominioId}) async {
+    if (_token == null) return;
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      if (condominioId != null) {
+        _amenidades = await _amenidadService.listarPorCondominio(condominioId);
+      }
+    } catch (e) {
+      _error = 'Error al cargar amenidades';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> crearAmenidad(
+    String nombre,
+    int condominioId,
+    int? capacidadMaxima,
+  ) async {
+    if (_token == null) return false;
+
+    try {
+      await _amenidadService.crear(nombre, condominioId, capacidadMaxima);
+      await cargarAmenidades(condominioId: condominioId);
+      return true;
+    } catch (e) {
+      _error = 'Error al crear amenidad';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> actualizarAmenidad(
+    int id,
+    String nombre,
+    int condominioId,
+    int? capacidadMaxima,
+  ) async {
+    if (_token == null) return false;
+
+    try {
+      await _amenidadService.actualizar(
+        id,
+        nombre,
+        condominioId,
+        capacidadMaxima,
+      );
+      await cargarAmenidades(condominioId: condominioId);
+      return true;
+    } catch (e) {
+      _error = 'Error al actualizar amenidad';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> eliminarAmenidad(int id) async {
+    if (_token == null) return false;
+
+    try {
+      await _amenidadService.eliminar(id);
+      final condominioId = _selectedCondominio?.id;
+      if (condominioId != null) {
+        await cargarAmenidades(condominioId: condominioId);
+      }
+      return true;
+    } catch (e) {
+      _error = 'Error al eliminar amenidad';
       notifyListeners();
       return false;
     }

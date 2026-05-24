@@ -4,6 +4,7 @@ import 'admin_state.dart';
 import 'admin_dashboard_screen.dart';
 import 'admin_condominiums_screen.dart';
 import 'admin_alerts_screen.dart';
+import 'admin_reservations_screen.dart';
 import 'admin_profile_screen.dart';
 
 // Shell principal del administrador con navegación por tabs
@@ -26,20 +27,19 @@ class _AdminShellState extends State<AdminShell> {
       if (widget.accessToken != null && mounted) {
         final adminState = Provider.of<AdminState>(context, listen: false);
         adminState.setToken(widget.accessToken!);
-        adminState.init(); // ✅ LLAMAR init() DESPUÉS
+        adminState.init();
       }
     });
   }
 
-  // Lista de pantallas para el IndexedStack
   final List<Widget> _screens = [
     const AdminDashboardScreen(),
     const AdminCondominiumsScreen(),
+    const AdminReservationsScreen(),
     const AdminAlertsScreen(),
     const AdminProfileScreen(),
   ];
 
-  // Método para cambiar de tab
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -63,6 +63,7 @@ class _AdminShellState extends State<AdminShell> {
             icon: Icon(Icons.apartment),
             label: 'Condominios',
           ),
+          BottomNavigationBarItem(icon: Icon(Icons.place), label: 'Amenidades'),
           BottomNavigationBarItem(
             icon: Icon(Icons.notifications),
             label: 'Alertas',

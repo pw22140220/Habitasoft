@@ -1,5 +1,7 @@
 package com.condominios.service;
 
+import com.condominios.dto.CambioPasswordRequest;
+import com.condominios.dto.UsuarioPerfilResponse;
 import com.condominios.dto.UsuarioRequest;
 import com.condominios.dto.UsuarioResponse;
 import com.condominios.model.AdminCondominio;
@@ -151,6 +153,57 @@ public class UsuarioService {
         userRepository.deleteById(id);
     }
 
+    // ==================== PERFIL ====================
+
+    public UsuarioPerfilResponse obtenerPerfil(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        return toPerfilResponse(user);
+    }
+
+    @Transactional
+    public UsuarioPerfilResponse actualizarPerfil(Long userId, String nombre, String email, String telefono) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        if (!user.getEmail().equals(email) && userRepository.findByEmail(email).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El email ya está en uso");
+        }
+
+        user.setNombre(nombre);
+        user.setEmail(email);
+        user.setTelefono(telefono);
+
+        user = userRepository.save(user);
+        return toPerfilResponse(user);
+    }
+
+    @Transactional
+    public void cambiarPassword(Long userId, CambioPasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        if (!passwordEncoder.matches(request.getPasswordActual(), user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Contraseña actual incorrecta");
+        }
+
+        if (passwordEncoder.matches(request.getPasswordNueva(), user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La nueva contraseña debe ser diferente a la actual");
+        }
+
+        if (!request.getPasswordNueva().equals(request.getConfirmarPasswordNueva())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Las contraseñas nuevas no coinciden");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getPasswordNueva()));
+        userRepository.save(user);
+    }
+
     // ==================== OBTENER CONDOMINIO POR ROL ====================
 
     public Long obtenerCondominioIdPorAdmin(Long adminId) {
@@ -231,6 +284,24 @@ public class UsuarioService {
 
         ResidenteUnidad ru = new ResidenteUnidad(residenteId, unidad.getId());
         residenteUnidadRepository.save(ru);
+    }
+
+    private UsuarioPerfilResponse toPerfilResponse(User user) {
+        UsuarioPerfilResponse response = new UsuarioPerfilResponse();
+        response.setId(user.getId());
+        response.setNombre(user.getNombre());
+        response.setEmail(user.getEmail());
+        response.setTelefono(user.getTelefono());
+        response.setRol(user.getRol());
+        response.setFechaCreacion(user.getFechaCreacion());
+
+        if (user.getRol() == Rol.residente) {
+            residenteUnidadRepository.findByIdResidenteId(user.getId())
+                    .ifPresent(ru -> unidadRepository.findById(ru.getId().getUnidadId())
+                            .ifPresent(u -> response.setNumeroUnidad(u.getNumeroUnidad())));
+        }
+
+        return response;
     }
 
     private UsuarioResponse toResponse(User user) {

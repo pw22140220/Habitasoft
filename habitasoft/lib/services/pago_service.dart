@@ -113,6 +113,9 @@ class PagoService {
 
   Future<List<Pago>> listarMisPagos() async {
     final uri = Uri.parse('$_baseUrl/api/residente/pagos');
+    print(
+      '[PagoService] Token: ${_token != null ? "Bearer ${_token!.substring(0, 20)}..." : "null"}',
+    );
     final response = await http
         .get(uri, headers: _headers)
         .timeout(const Duration(seconds: 10));

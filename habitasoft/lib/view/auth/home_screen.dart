@@ -5,6 +5,7 @@ import '../watchman/watchman_dashboard.dart';
 import '../../services/auth_service.dart';
 import '../../services/biometric_service.dart';
 import '../../services/biometric_preferences_service.dart';
+import '../../services/perfil_service.dart';
 import 'biometric_prompt_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -48,6 +49,44 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkSavedSession();
+    });
+  }
+
+  Future<void> _checkSavedSession() async {
+    final hasSession = await BiometricPreferencesService.hasSession();
+    if (!hasSession || !mounted) return;
+
+    final token = await BiometricPreferencesService.getToken();
+    final userName = await BiometricPreferencesService.getUserName();
+    final role = await BiometricPreferencesService.getUserRole();
+
+    if (token == null ||
+        token.startsWith('mock-') ||
+        userName.isEmpty ||
+        role == null ||
+        !mounted) {
+      await BiometricPreferencesService.clearSession();
+      return;
+    }
+
+    try {
+      final service = PerfilService(token: token);
+      await service.obtenerPerfil();
+    } catch (_) {
+      await BiometricPreferencesService.clearSession();
+      if (mounted) setState(() {});
+      return;
+    }
+
+    if (!mounted) return;
+    final loginResponse = LoginResponse(
+      userName: userName,
+      userRole: role,
+      accessToken: token,
+    );
+    _navigateToDashboard(loginResponse);
   }
 
   @override
@@ -74,8 +113,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (!mounted) return;
 
-      // Guardar el nombre del usuario en shared_preferences
       await BiometricPreferencesService.setUserName(loginResponse.userName);
+      if (loginResponse.accessToken != null) {
+        await BiometricPreferencesService.setSession(
+          loginResponse.accessToken!,
+          loginResponse.userRole,
+        );
+      }
 
       // Verificar si la biometría está activada
       final biometricEnabled =
@@ -256,6 +300,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Navegar al Dashboard según el rol
   void _navigateToDashboard(LoginResponse loginResponse) {
+    if (loginResponse.accessToken != null) {
+      BiometricPreferencesService.setSession(
+        loginResponse.accessToken!,
+        loginResponse.userRole,
+      );
+    }
     if (loginResponse.userRole == 'admin') {
       // Navegar al AdminShell
       Navigator.pushReplacement(

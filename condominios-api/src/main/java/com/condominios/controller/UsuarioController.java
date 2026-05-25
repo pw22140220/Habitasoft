@@ -18,7 +18,7 @@ import java.security.Principal;
 @RestController
 @RequestMapping("/api/admin/usuarios")
 @CrossOrigin(origins = "*")
-@PreAuthorize("hasRole('administrador')")
+@PreAuthorize("hasRole('ADMINISTRADOR')")
 public class UsuarioController {
 
     private final UsuarioService usuarioService;

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../services/biometric_preferences_service.dart';
+import '../../services/perfil_service.dart';
 
-// Pantalla para editar perfil del usuario
 class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({super.key});
+  final String? token;
+
+  const EditProfileScreen({super.key, this.token});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -13,7 +15,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _unitController = TextEditingController();
+  String _numeroUnidad = '';
 
   bool _isLoading = false;
 
@@ -23,24 +25,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _loadUserData();
   }
 
-  // Cargar datos del usuario desde shared_preferences
   Future<void> _loadUserData() async {
-    final name = await BiometricPreferencesService.getUserName();
-    final email = await BiometricPreferencesService.getUserEmail();
-    final unit = await BiometricPreferencesService.getUserUnit();
-
-    setState(() {
+    final token = widget.token ?? await BiometricPreferencesService.getToken();
+    final service = PerfilService(token: token);
+    try {
+      final perfil = await service.obtenerPerfil();
+      _nameController.text = perfil.nombre;
+      _emailController.text = perfil.email;
+      _numeroUnidad = perfil.numeroUnidad ?? '';
+    } catch (_) {
+      final name = await BiometricPreferencesService.getUserName();
+      final email = await BiometricPreferencesService.getUserEmail();
       _nameController.text = name;
       _emailController.text = email;
-      _unitController.text = unit;
-    });
+    }
+    setState(() {});
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
-    _unitController.dispose();
     super.dispose();
   }
 
@@ -53,15 +58,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Guardar en shared_preferences (mock)
+      final token =
+          widget.token ?? await BiometricPreferencesService.getToken();
+      final service = PerfilService(token: token);
+      await service.actualizarPerfil(
+        nombre: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+      );
+
       await BiometricPreferencesService.setUserName(
         _nameController.text.trim(),
       );
       await BiometricPreferencesService.setUserEmail(
         _emailController.text.trim(),
-      );
-      await BiometricPreferencesService.setUserUnit(
-        _unitController.text.trim(),
       );
 
       if (!mounted) return;
@@ -73,11 +82,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       );
 
-      Navigator.pop(context); // Regresar a la pantalla anterior
+      Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(
+            'Error: ${e.toString().replaceFirst("Exception: ", "")}',
+          ),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) {
@@ -209,7 +223,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Campo: Unidad
+            // Campo: Unidad (solo lectura)
             Card(
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -229,24 +243,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _unitController,
-                      decoration: const InputDecoration(
-                        hintText: 'Ej: Torre A - Apto 301',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'La unidad es obligatoria';
-                        }
-                        return null;
-                      },
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0F0F0),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFDDDDDD)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.apartment,
+                            size: 18,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _numeroUnidad.isNotEmpty
+                                ? _numeroUnidad
+                                : 'No asignada',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF555555),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'La unidad no se puede modificar',
+                      style: TextStyle(fontSize: 11, color: Colors.grey),
                     ),
                   ],
                 ),

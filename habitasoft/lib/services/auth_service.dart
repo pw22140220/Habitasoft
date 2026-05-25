@@ -25,6 +25,25 @@ class LoginResponse {
 class AuthService {
   static const String _baseUrl = 'http://10.0.2.2:8084';
 
+  static Future<int> obtenerCondominioId(String? token) async {
+    final uri = Uri.parse('$_baseUrl/api/residente/mi-condominio');
+    final response = await http
+        .get(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            if (token != null) 'Authorization': 'Bearer $token',
+          },
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return data['id'] as int;
+    }
+    return 1;
+  }
+
   // Devuelve LoginResponse con nombre y rol del usuario
   Future<LoginResponse> login(String email, String password) async {
     // Validación básica local
@@ -54,7 +73,6 @@ class AuthService {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final usuario = data['usuario'] as Map<String, dynamic>;
         final userName = usuario['nombre'] as String;
-        // Por defecto, asumimos rol de residente si no viene en la respuesta
         /*
          * Mapear el rol que devuelve el backend (español, minúsculas)
          * al formato que espera el router del frontend (inglés).
@@ -73,7 +91,7 @@ class AuthService {
             case 'guardia':
               return 'guard';
             default:
-              return 'resident'; // fallback seguro
+              return 'resident';
           }
         }
 
@@ -104,11 +122,20 @@ class AuthService {
         return LoginResponse(
           userName: 'Administrador General',
           userRole: 'admin',
+          accessToken: 'mock-token-admin',
         );
       } else if (email == 'juan@example.com' && password == 'juan123') {
-        return LoginResponse(userName: 'Juan Pérez', userRole: 'resident');
+        return LoginResponse(
+          userName: 'Juan Pérez',
+          userRole: 'resident',
+          accessToken: 'mock-token-residente',
+        );
       } else if (email == 'carlos@example.com' && password == 'carlos123') {
-        return LoginResponse(userName: 'Carlos López', userRole: 'resident');
+        return LoginResponse(
+          userName: 'Carlos López',
+          userRole: 'resident',
+          accessToken: 'mock-token-residente',
+        );
       } else {
         throw AuthException('Correo o contraseña incorrectos (modo mock).');
       }

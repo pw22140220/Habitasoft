@@ -3,6 +3,7 @@ package com.condominios.config;
 import com.condominios.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -25,6 +26,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
@@ -47,6 +49,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/login").permitAll()
 
                 .requestMatchers(
+                    "/api/usuario/**"
+                ).authenticated()
+
+                .requestMatchers(
                     "/api/admin/**",
                     "/api/usuarios/**"
                 ).hasRole("ADMINISTRADOR")
@@ -57,7 +63,7 @@ public class SecurityConfig {
                     "/api/amenidades/**",
                     "/api/incidentes/**",
                     "/api/pases-visita/**",
-                    "/api/residente/alertas/**"
+                    "/api/residente/**"
                 ).hasAnyRole("ADMINISTRADOR", "RESIDENTE")
 
                 .requestMatchers(

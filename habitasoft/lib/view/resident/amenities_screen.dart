@@ -2,106 +2,133 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'dashboard.dart';
 import 'profile_screen.dart';
-import 'notifications_screen.dart';
+import 'residente_reservaciones_screen.dart';
+import '../../models/amenidad_model.dart';
+import '../../models/reservacion_model.dart';
+import '../../services/amenidad_service.dart';
+import '../../services/reservacion_service.dart';
+import '../../services/auth_service.dart';
 
-// ====== CONSTANTES DE DISEÑO (MISMO QUE DASHBOARD) ======
-const double kCardsOverlap = 33;
-const double kBlueExtraHeight = 60;
 const Color kPrimaryGreen = Color(0xFF15806C);
 const Color kPrimaryBlue = Color(0xFF0B64D8);
 const Color kLightGray = Color(0xFFF5F6FA);
 const Color kCardShadow = Color(0x0A000000);
-// =======================================================
 
 class AmenitiesScreen extends StatefulWidget {
-  final String userName; // 👈 nombre del usuario logueado
+  final String userName;
+  final String? token;
 
-  const AmenitiesScreen({super.key, required this.userName});
+  const AmenitiesScreen({super.key, required this.userName, this.token});
 
   @override
   State<AmenitiesScreen> createState() => _AmenitiesScreenState();
 }
 
 class _AmenitiesScreenState extends State<AmenitiesScreen> {
-  DateTime _selectedDay = DateTime.now(); // Día seleccionado en el calendario
-  DateTime _focusedDay = DateTime.now(); // Día enfocado en el calendario
-  CalendarFormat _calendarFormat =
-      CalendarFormat.month; // Formato del calendario
+  List<Amenidad> _amenidades = [];
+  bool _isLoading = false;
+  String? _error;
+  int _condominioId = 1;
 
-  // Datos falsos para disponibilidad por día (renta por día completo)
-  final Map<DateTime, List<Map<String, dynamic>>> _mockAvailabilityData = {
-    DateTime.now(): [
-      {
-        'id': 1,
-        'title': 'Clubhouse',
-        'icon': Icons.home_outlined,
-        'timeRange': '7:00 am - 5:00 pm',
-        'isAvailable': true, // Disponible para renta
-      },
-      {
-        'id': 2,
-        'title': 'Swimming Pool',
-        'icon': Icons.pool_outlined,
-        'timeRange': '8:00 am - 8:00 pm',
-        'isAvailable': false, // Ya rentado
-      },
-    ],
-    DateTime.now().add(const Duration(days: 1)): [
-      {
-        'id': 1,
-        'title': 'Clubhouse',
-        'icon': Icons.home_outlined,
-        'timeRange': '9:00 am - 6:00 pm',
-        'isAvailable': false, // Ya rentado
-      },
-      {
-        'id': 2,
-        'title': 'Swimming Pool',
-        'icon': Icons.pool_outlined,
-        'timeRange': '7:00 am - 9:00 pm',
-        'isAvailable': true, // Disponible para renta
-      },
-    ],
-    DateTime.now().add(const Duration(days: 2)): [
-      {
-        'id': 1,
-        'title': 'Clubhouse',
-        'icon': Icons.home_outlined,
-        'timeRange': '8:00 am - 4:00 pm',
-        'isAvailable': true, // Disponible para renta
-      },
-      {
-        'id': 2,
-        'title': 'Swimming Pool',
-        'icon': Icons.pool_outlined,
-        'timeRange': '10:00 am - 7:00 pm',
-        'isAvailable': true, // Disponible para renta
-      },
-    ],
-  };
+  DateTime _selectedDay = DateTime.now();
+  DateTime _focusedDay = DateTime.now();
+  CalendarFormat _calendarFormat = CalendarFormat.month;
+
+  AmenidadService get _amenidadService => AmenidadService(token: widget.token);
+  ReservacionService get _reservacionService =>
+      ReservacionService(token: widget.token);
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    _condominioId = await AuthService.obtenerCondominioId(widget.token);
+    _cargarAmenidades();
+  }
+
+  Future<void> _cargarAmenidades() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final amenities = await _amenidadService.listarResidente(_condominioId);
+      setState(() => _amenidades = amenities);
+    } catch (e) {
+      setState(() => _error = 'Error al cargar amenidades');
+    }
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _reservarAmenidad(Amenidad amenidad) async {
+    final fecha = _selectedDay;
+    final fechaStr =
+        '${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}';
+
+    final horario = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (ctx) => _HorarioPickerDialog(fecha: fechaStr),
+    );
+    if (horario == null) return;
+
+    try {
+      await _reservacionService.crear(
+        amenidad.id,
+        horario['inicio']!,
+        horario['fin']!,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${amenidad.nombre} reservada exitosamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Obtener disponibilidad para el día seleccionado
-    final selectedDateKey = DateTime(
-      _selectedDay.year,
-      _selectedDay.month,
-      _selectedDay.day,
-    );
-    final availabilityForSelectedDay =
-        _mockAvailabilityData[selectedDateKey] ??
-        _mockAvailabilityData.values.first;
-
     return Scaffold(
       backgroundColor: kLightGray,
-      bottomNavigationBar: _AmenitiesBottomNavBar(userName: widget.userName),
+      bottomNavigationBar: _AmenitiesBottomNavBar(
+        userName: widget.userName,
+        token: widget.token,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             children: [
-              _AmenitiesHeader(userName: widget.userName),
+              _AmenitiesHeader(
+                userName: widget.userName,
+                onMisReservaciones: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (_) => ResidenteReservacionesScreen(
+                            userName: widget.userName,
+                            token: widget.token,
+                          ),
+                    ),
+                  );
+                },
+              ),
               Transform.translate(
-                offset: const Offset(0, -kCardsOverlap),
+                offset: const Offset(0, -33),
                 child: _CalendarSection(
                   selectedDay: _selectedDay,
                   focusedDay: _focusedDay,
@@ -113,19 +140,87 @@ class _AmenitiesScreenState extends State<AmenitiesScreen> {
                     });
                   },
                   onFormatChanged: (format) {
-                    setState(() {
-                      _calendarFormat = format;
-                    });
+                    setState(() => _calendarFormat = format);
                   },
                   onPageChanged: (focusedDay) {
-                    setState(() {
-                      _focusedDay = focusedDay;
-                    });
+                    setState(() => _focusedDay = focusedDay);
                   },
                 ),
               ),
-              const SizedBox(height: kCardsOverlap),
-              _BookableSlotsSection(availability: availabilityForSelectedDay),
+              const SizedBox(height: 33),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Amenidades Disponibles',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (_) => ResidenteReservacionesScreen(
+                                  userName: widget.userName,
+                                  token: widget.token,
+                                ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.list_alt, size: 18),
+                      label: const Text('Mis reservas'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              _isLoading
+                  ? const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: CircularProgressIndicator(),
+                  )
+                  : _error != null
+                  ? Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: _cargarAmenidades,
+                          child: const Text('Reintentar'),
+                        ),
+                      ],
+                    ),
+                  )
+                  : _amenidades.isEmpty
+                  ? const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Text(
+                      'No hay amenidades disponibles',
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                  )
+                  : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: _amenidades.length,
+                    itemBuilder:
+                        (ctx, i) => _AmenidadCard(
+                          amenidad: _amenidades[i],
+                          onReservar: () => _reservarAmenidad(_amenidades[i]),
+                        ),
+                  ),
               const SizedBox(height: 24),
             ],
           ),
@@ -135,23 +230,85 @@ class _AmenitiesScreenState extends State<AmenitiesScreen> {
   }
 }
 
-// ================== HEADER MODERNO (ESTILO DASHBOARD) ==================
+class _HorarioPickerDialog extends StatefulWidget {
+  final String fecha;
+  const _HorarioPickerDialog({required this.fecha});
+
+  @override
+  State<_HorarioPickerDialog> createState() => _HorarioPickerDialogState();
+}
+
+class _HorarioPickerDialogState extends State<_HorarioPickerDialog> {
+  TimeOfDay _horaInicio = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay _horaFin = const TimeOfDay(hour: 10, minute: 0);
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Seleccionar horario'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Fecha: ${widget.fecha}'),
+          const SizedBox(height: 16),
+          ListTile(
+            leading: const Icon(Icons.access_time),
+            title: Text('Inicio: ${_horaInicio.format(context)}'),
+            onTap: () async {
+              final picked = await showTimePicker(
+                context: context,
+                initialTime: _horaInicio,
+              );
+              if (picked != null) setState(() => _horaInicio = picked);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.access_time),
+            title: Text('Fin: ${_horaFin.format(context)}'),
+            onTap: () async {
+              final picked = await showTimePicker(
+                context: context,
+                initialTime: _horaFin,
+              );
+              if (picked != null) setState(() => _horaFin = picked);
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final inicio =
+                '${widget.fecha}T${_horaInicio.hour.toString().padLeft(2, '0')}:${_horaInicio.minute.toString().padLeft(2, '0')}:00';
+            final fin =
+                '${widget.fecha}T${_horaFin.hour.toString().padLeft(2, '0')}:${_horaFin.minute.toString().padLeft(2, '0')}:00';
+            Navigator.pop(context, {'inicio': inicio, 'fin': fin});
+          },
+          child: const Text('Confirmar'),
+        ),
+      ],
+    );
+  }
+}
 
 class _AmenitiesHeader extends StatelessWidget {
   final String userName;
+  final VoidCallback onMisReservaciones;
 
-  const _AmenitiesHeader({required this.userName});
+  const _AmenitiesHeader({
+    required this.userName,
+    required this.onMisReservaciones,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 16,
-        bottom: kBlueExtraHeight,
-      ),
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 60),
       decoration: const BoxDecoration(
         color: kPrimaryBlue,
         borderRadius: BorderRadius.only(
@@ -169,7 +326,6 @@ class _AmenitiesHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // FILA SUPERIOR: Botón atrás + Notificaciones
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -180,25 +336,26 @@ class _AmenitiesHeader extends StatelessWidget {
                 constraints: const BoxConstraints(),
               ),
               GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const NotificationsScreen(),
-                    ),
-                  );
-                },
+                onTap: onMisReservaciones,
                 child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(18),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
                   ),
-                  child: const Icon(
-                    Icons.notifications_none,
-                    color: kPrimaryBlue,
-                    size: 20,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.list_alt, color: Colors.white, size: 16),
+                      SizedBox(width: 4),
+                      Text(
+                        'Mis reservas',
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -229,8 +386,6 @@ class _AmenitiesHeader extends StatelessWidget {
     );
   }
 }
-
-// ================== SECCIÓN CALENDARIO INTERACTIVO ==================
 
 class _CalendarSection extends StatelessWidget {
   final DateTime selectedDay;
@@ -274,8 +429,6 @@ class _CalendarSection extends StatelessWidget {
         onFormatChanged: onFormatChanged,
         onPageChanged: onPageChanged,
         calendarFormat: calendarFormat,
-
-        // Estilo del encabezado
         headerStyle: const HeaderStyle(
           formatButtonVisible: false,
           titleCentered: true,
@@ -288,8 +441,6 @@ class _CalendarSection extends StatelessWidget {
           rightChevronIcon: Icon(Icons.chevron_right, color: Colors.grey),
           headerPadding: EdgeInsets.only(bottom: 12),
         ),
-
-        // Estilo de los días de la semana
         daysOfWeekStyle: const DaysOfWeekStyle(
           weekdayStyle: TextStyle(
             fontSize: 12,
@@ -302,8 +453,6 @@ class _CalendarSection extends StatelessWidget {
             fontWeight: FontWeight.w500,
           ),
         ),
-
-        // Estilo de los días
         calendarStyle: CalendarStyle(
           todayDecoration: BoxDecoration(
             color: kPrimaryBlue.withOpacity(0.1),
@@ -313,7 +462,7 @@ class _CalendarSection extends StatelessWidget {
             color: kPrimaryBlue,
             fontWeight: FontWeight.w600,
           ),
-          selectedDecoration: BoxDecoration(
+          selectedDecoration: const BoxDecoration(
             color: kPrimaryBlue,
             shape: BoxShape.circle,
           ),
@@ -331,8 +480,6 @@ class _CalendarSection extends StatelessWidget {
           ),
           outsideDaysVisible: false,
         ),
-
-        // Días de la semana en español
         daysOfWeekHeight: 24,
         rowHeight: 40,
       ),
@@ -340,84 +487,11 @@ class _CalendarSection extends StatelessWidget {
   }
 }
 
-// ================== SECCIÓN BOOKABLE SLOTS ==================
+class _AmenidadCard extends StatelessWidget {
+  final Amenidad amenidad;
+  final VoidCallback onReservar;
 
-class _BookableSlotsSection extends StatelessWidget {
-  final List<Map<String, dynamic>> availability;
-
-  const _BookableSlotsSection({required this.availability});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: kCardShadow,
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Título de la sección
-          const Text(
-            'Horarios Disponibles',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF333333),
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Selecciona un horario para reservar',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Lista de amenidades disponibles
-          Column(
-            children:
-                availability
-                    .map(
-                      (amenity) => _SlotCard(
-                        icon: amenity['icon'] as IconData,
-                        title: amenity['title'] as String,
-                        timeRange: amenity['timeRange'] as String,
-                        isAvailable: amenity['isAvailable'] as bool,
-                      ),
-                    )
-                    .toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SlotCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String timeRange;
-  final bool isAvailable;
-
-  const _SlotCard({
-    required this.icon,
-    required this.title,
-    required this.timeRange,
-    required this.isAvailable,
-  });
+  const _AmenidadCard({required this.amenidad, required this.onReservar});
 
   @override
   Widget build(BuildContext context) {
@@ -438,7 +512,6 @@ class _SlotCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Icono
           Container(
             width: 48,
             height: 48,
@@ -446,80 +519,50 @@ class _SlotCard extends StatelessWidget {
               color: kPrimaryBlue.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, size: 28, color: kPrimaryBlue),
+            child: const Icon(
+              Icons.place_outlined,
+              size: 28,
+              color: kPrimaryBlue,
+            ),
           ),
           const SizedBox(width: 16),
-
-          // Información - Usando Expanded para evitar overflow
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  amenidad.nombre,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF333333),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  timeRange,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-
-                // Indicador de disponibilidad simplificado
-                Row(
-                  children: [
-                    Icon(
-                      Icons.circle,
-                      size: 10,
-                      color:
-                          isAvailable
-                              ? const Color(0xFF4CAF50)
-                              : const Color(0xFF9E9E9E),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      isAvailable ? 'Disponible' : 'Reservado',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color:
-                            isAvailable
-                                ? const Color(0xFF4CAF50)
-                                : const Color(0xFF9E9E9E),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                  amenidad.capacidadMaxima != null
+                      ? 'Capacidad máxima: ${amenidad.capacidadMaxima} personas'
+                      : 'Sin límite de capacidad',
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
                 ),
               ],
             ),
           ),
-
-          // Botón de reserva
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: isAvailable ? kPrimaryBlue : const Color(0xFFEEEEEE),
-              borderRadius: BorderRadius.circular(8),
+          ElevatedButton(
+            onPressed: onReservar,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimaryBlue,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            child: Text(
-              isAvailable ? 'Reservar' : 'Ocupado',
+            child: const Text(
+              'Reservar',
               style: TextStyle(
                 fontSize: 14,
-                color: isAvailable ? Colors.white : const Color(0xFF9E9E9E),
                 fontWeight: FontWeight.w600,
+                color: Colors.white,
               ),
             ),
           ),
@@ -529,52 +572,53 @@ class _SlotCard extends StatelessWidget {
   }
 }
 
-// ================== BOTTOM NAVIGATION BAR MEJORADO ==================
-
 class _AmenitiesBottomNavBar extends StatefulWidget {
   final String userName;
+  final String? token;
 
-  const _AmenitiesBottomNavBar({required this.userName});
+  const _AmenitiesBottomNavBar({required this.userName, this.token});
 
   @override
   State<_AmenitiesBottomNavBar> createState() => _AmenitiesBottomNavBarState();
 }
 
 class _AmenitiesBottomNavBarState extends State<_AmenitiesBottomNavBar> {
-  int _selectedIndex =
-      1; // Calendario seleccionado por defecto en esta pantalla
+  int _selectedIndex = 1;
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
+    setState(() => _selectedIndex = index);
     switch (index) {
       case 0:
-        // Inicio → Dashboard
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => DashboardScreen(userName: widget.userName),
+            builder:
+                (_) => DashboardScreen(
+                  userName: widget.userName,
+                  token: widget.token,
+                ),
           ),
         );
         break;
       case 1:
-        // Ya estamos en Amenities (Calendario)
         break;
       case 2:
-        // Alertas → NotificationsScreen
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-        );
-        break;
-      case 3:
-        // Perfil → ProfileScreen
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => ProfileScreen(userName: widget.userName),
+            builder: (_) => const _PlaceholderScreen(label: 'Alertas'),
+          ),
+        );
+        break;
+      case 3:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder:
+                (_) => ProfileScreen(
+                  userName: widget.userName,
+                  token: widget.token,
+                ),
           ),
         );
         break;
@@ -635,6 +679,19 @@ class _AmenitiesBottomNavBarState extends State<_AmenitiesBottomNavBar> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PlaceholderScreen extends StatelessWidget {
+  final String label;
+  const _PlaceholderScreen({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(label)),
+      body: const Center(child: Text('Pantalla en construcción')),
     );
   }
 }

@@ -25,7 +25,7 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kLightGray,
-      bottomNavigationBar: _BottomNavBar(userName: userName),
+      bottomNavigationBar: _BottomNavBar(userName: userName, token: token),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -36,7 +36,7 @@ class DashboardScreen extends StatelessWidget {
                 child: _OptionsGrid(userName: userName, token: token),
               ),
               const SizedBox(height: kCardsOverlap),
-              const _AnnouncementsPreviewSection(),
+              _AnnouncementsPreviewSection(userName: userName, token: token),
             ],
           ),
         ),
@@ -170,7 +170,9 @@ class _OptionsGrid extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => QRGenerationScreen(userName: userName),
+                  builder:
+                      (_) =>
+                          QRGenerationScreen(userName: userName, token: token),
                 ),
               );
             },
@@ -184,7 +186,8 @@ class _OptionsGrid extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => AmenitiesScreen(userName: userName),
+                  builder:
+                      (_) => AmenitiesScreen(userName: userName, token: token),
                 ),
               );
             },
@@ -198,7 +201,9 @@ class _OptionsGrid extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => AnnouncementsScreen(userName: userName),
+                  builder:
+                      (_) =>
+                          AnnouncementsScreen(userName: userName, token: token),
                 ),
               );
             },
@@ -310,7 +315,10 @@ class _DashboardCard extends StatelessWidget {
 // ================== VISTA PREVIA DE ANUNCIOS ==================
 
 class _AnnouncementsPreviewSection extends StatelessWidget {
-  const _AnnouncementsPreviewSection();
+  final String userName;
+  final String? token;
+
+  const _AnnouncementsPreviewSection({required this.userName, this.token});
 
   @override
   Widget build(BuildContext context) {
@@ -334,7 +342,11 @@ class _AnnouncementsPreviewSection extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => AnnouncementsScreen(userName: 'Usuario'),
+                      builder:
+                          (_) => AnnouncementsScreen(
+                            userName: userName,
+                            token: token,
+                          ),
                     ),
                   );
                 },
@@ -474,8 +486,9 @@ class _AnnouncementCard extends StatelessWidget {
 
 class _BottomNavBar extends StatefulWidget {
   final String userName;
+  final String? token;
 
-  const _BottomNavBar({required this.userName});
+  const _BottomNavBar({required this.userName, this.token});
 
   @override
   State<_BottomNavBar> createState() => _BottomNavBarState();
@@ -497,7 +510,11 @@ class _BottomNavBarState extends State<_BottomNavBar> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => AmenitiesScreen(userName: widget.userName),
+            builder:
+                (_) => AmenitiesScreen(
+                  userName: widget.userName,
+                  token: widget.token,
+                ),
           ),
         );
         break;
@@ -511,7 +528,11 @@ class _BottomNavBarState extends State<_BottomNavBar> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ProfileScreen(userName: widget.userName),
+            builder:
+                (_) => ProfileScreen(
+                  userName: widget.userName,
+                  token: widget.token,
+                ),
           ),
         );
         break;

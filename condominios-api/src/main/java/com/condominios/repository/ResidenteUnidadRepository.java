@@ -13,6 +13,9 @@ public interface ResidenteUnidadRepository extends JpaRepository<ResidenteUnidad
 
     Optional<ResidenteUnidad> findByIdResidenteId(Long residenteId);
 
+    @Query("SELECT u.condominioId FROM ResidenteUnidad ru JOIN Unidad u ON u.id = ru.id.unidadId WHERE ru.id.residenteId = :residenteId")
+    Optional<Long> findCondominioIdByResidenteId(@Param("residenteId") Long residenteId);
+
     void deleteByIdResidenteId(Long residenteId);
 
     boolean existsByIdResidenteId(Long residenteId);

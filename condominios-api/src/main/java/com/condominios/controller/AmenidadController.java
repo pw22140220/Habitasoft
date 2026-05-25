@@ -2,6 +2,10 @@ package com.condominios.controller;
 
 import com.condominios.dto.AmenidadRequest;
 import com.condominios.dto.AmenidadResponse;
+import com.condominios.dto.CondominioResponse;
+import com.condominios.model.User;
+import com.condominios.repository.ResidenteUnidadRepository;
+import com.condominios.repository.UserRepository;
 import com.condominios.service.AmenidadService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -10,16 +14,25 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @CrossOrigin(origins = "*")
 public class AmenidadController {
 
     private final AmenidadService amenidadService;
+    private final UserRepository userRepository;
+    private final ResidenteUnidadRepository residenteUnidadRepository;
 
-    public AmenidadController(AmenidadService amenidadService) {
+    public AmenidadController(AmenidadService amenidadService,
+                              UserRepository userRepository,
+                              ResidenteUnidadRepository residenteUnidadRepository) {
         this.amenidadService = amenidadService;
+        this.userRepository = userRepository;
+        this.residenteUnidadRepository = residenteUnidadRepository;
     }
 
     @PostMapping("/api/admin/amenidades")
@@ -62,5 +75,20 @@ public class AmenidadController {
             @RequestParam("condominioId") Long condominioId,
             @PageableDefault(size = 10) Pageable pageable) {
         return ResponseEntity.ok(amenidadService.listarPorCondominio(condominioId, pageable));
+    }
+
+    @GetMapping("/api/residente/mi-condominio")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'RESIDENTE')")
+    public ResponseEntity<CondominioResponse> miCondominio() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        Long condominioId = residenteUnidadRepository.findCondominioIdByResidenteId(user.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "El residente no está asignado a ningún condominio"));
+
+        return ResponseEntity.ok(new CondominioResponse(condominioId, "Condominio #" + condominioId));
     }
 }

@@ -9,6 +9,13 @@ public class CondominioResponse {
     private String direccion;
     private LocalDateTime fechaCreacion;
 
+    public CondominioResponse() {}
+
+    public CondominioResponse(Long id, String nombre) {
+        this.id = id;
+        this.nombre = nombre;
+    }
+
     public Long getId() {
         return id;
     }

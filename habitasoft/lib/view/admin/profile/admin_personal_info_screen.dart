@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../../services/profile_service.dart';
 
-// Pantalla de información personal del administrador
 class AdminPersonalInfoScreen extends StatefulWidget {
-  const AdminPersonalInfoScreen({super.key});
+  final String? token;
+
+  const AdminPersonalInfoScreen({super.key, this.token});
 
   @override
   State<AdminPersonalInfoScreen> createState() =>
@@ -11,22 +13,72 @@ class AdminPersonalInfoScreen extends StatefulWidget {
 
 class _AdminPersonalInfoScreenState extends State<AdminPersonalInfoScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController(
-    text: 'Administrador Principal',
-  );
-  final _emailController = TextEditingController(text: 'admin@habitasoft.com');
-  final _phoneController = TextEditingController(text: '+1 234 567 8900');
-  final _positionController = TextEditingController(
-    text: 'Administrador Principal',
-  );
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  bool _isLoading = true;
+  bool _isSaving = false;
+  String? _rol;
+
+  ProfileService get _service => ProfileService(token: widget.token);
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarPerfil();
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _positionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _cargarPerfil() async {
+    try {
+      final perfil = await _service.getPerfil();
+      _nameController.text = perfil.nombre;
+      _emailController.text = perfil.email;
+      _phoneController.text = perfil.telefono ?? '';
+      _rol = perfil.rolTexto;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Error al cargar perfil')));
+      }
+    }
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _saveChanges() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSaving = true);
+    try {
+      await _service.actualizarPerfil(
+        _nameController.text,
+        _emailController.text,
+        _phoneController.text.isNotEmpty ? _phoneController.text : null,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Información actualizada exitosamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
+    setState(() => _isSaving = false);
   }
 
   @override
@@ -36,239 +88,141 @@ class _AdminPersonalInfoScreenState extends State<AdminPersonalInfoScreen> {
         title: const Text('Información Personal'),
         backgroundColor: Colors.green[700],
         elevation: 2,
-        actions: [
-          IconButton(icon: const Icon(Icons.save), onPressed: _saveChanges),
-        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              // Avatar
-              Center(
-                child: Stack(
-                  children: [
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        color: Colors.green[100],
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.green[300]!, width: 3),
-                      ),
-                      child: const Icon(
-                        Icons.person,
-                        size: 60,
-                        color: Colors.green,
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.green[700],
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.camera_alt,
-                            size: 18,
-                            color: Colors.white,
-                          ),
-                          onPressed: () {
-                            // TODO: Implementar cambio de foto
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Campos del formulario
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre completo',
-                  prefixIcon: Icon(Icons.person),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor ingresa tu nombre';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Correo electrónico',
-                  prefixIcon: Icon(Icons.email),
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor ingresa tu correo electrónico';
-                  }
-                  if (!value.contains('@')) {
-                    return 'Por favor ingresa un correo válido';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Teléfono',
-                  prefixIcon: Icon(Icons.phone),
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor ingresa tu teléfono';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _positionController,
-                decoration: const InputDecoration(
-                  labelText: 'Cargo / Posición',
-                  prefixIcon: Icon(Icons.work),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor ingresa tu cargo';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Información adicional
-              Container(
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[200]!),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Información adicional',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[700],
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.green[100],
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.green[300]!,
+                              width: 3,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.person,
+                            size: 50,
+                            color: Colors.green,
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildInfoRow('ID de administrador', 'ADM-001'),
-                    _buildInfoRow('Fecha de registro', '15/03/2024'),
-                    _buildInfoRow('Última actualización', 'Hoy'),
-                    _buildInfoRow(
-                      'Estado de la cuenta',
-                      'Activa',
-                      isActive: true,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Botones de acción
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: BorderSide(color: Colors.grey[300]!),
+                      if (_rol != null) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green[50],
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            _rol!,
+                            style: TextStyle(
+                              color: Colors.green[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Nombre completo',
+                          prefixIcon: Icon(Icons.person),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator:
+                            (v) =>
+                                v == null || v.isEmpty
+                                    ? 'Ingresa tu nombre'
+                                    : null,
                       ),
-                      child: const Text('Cancelar'),
-                    ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _emailController,
+                        decoration: const InputDecoration(
+                          labelText: 'Correo electrónico',
+                          prefixIcon: Icon(Icons.email),
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (v) {
+                          if (v == null || v.isEmpty)
+                            return 'Ingresa tu correo';
+                          if (!v.contains('@')) return 'Correo inválido';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _phoneController,
+                        decoration: const InputDecoration(
+                          labelText: 'Teléfono',
+                          prefixIcon: Icon(Icons.phone),
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 32),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                              ),
+                              child: const Text('Cancelar'),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _isSaving ? null : _saveChanges,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green[700],
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                              ),
+                              child:
+                                  _isSaving
+                                      ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                      : const Text(
+                                        'Guardar cambios',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _saveChanges,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green[700],
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: const Text('Guardar cambios'),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ],
-          ),
-        ),
-      ),
     );
-  }
-
-  // Método para construir fila de información
-  Widget _buildInfoRow(String label, String value, {bool isActive = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: isActive ? Colors.green[50] : Colors.grey[100],
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isActive ? Colors.green[200]! : Colors.grey[300]!,
-              ),
-            ),
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 12,
-                color: isActive ? Colors.green[700] : Colors.grey[700],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Método para guardar cambios
-  void _saveChanges() {
-    if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Información actualizada exitosamente'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.of(context).pop();
-    }
   }
 }

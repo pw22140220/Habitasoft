@@ -1,134 +1,155 @@
 import 'package:flutter/material.dart';
 import 'dashboard.dart';
 import 'profile_screen.dart';
+import '../../models/anuncio_model.dart';
+import '../../services/anuncio_service.dart';
+import '../../services/auth_service.dart';
 
-// Pantalla para ver anuncios comunitarios del administrador
-class AnnouncementsScreen extends StatelessWidget {
+class AnnouncementsScreen extends StatefulWidget {
   final String userName;
+  final String? token;
 
-  const AnnouncementsScreen({super.key, required this.userName});
+  const AnnouncementsScreen({super.key, required this.userName, this.token});
+
+  @override
+  State<AnnouncementsScreen> createState() => _AnnouncementsScreenState();
+}
+
+class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
+  List<Anuncio> _anuncios = [];
+  bool _isLoading = false;
+  String? _error;
+  int _condominioId = 1;
+
+  AnuncioService get _service => AnuncioService(token: widget.token);
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    _condominioId = await AuthService.obtenerCondominioId(widget.token);
+    _cargarAnuncios();
+  }
+
+  Future<void> _cargarAnuncios() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final anuncios = await _service.listarResidente(_condominioId);
+      anuncios.sort((a, b) {
+        if (a.destacado != b.destacado) {
+          return b.destacado ? 1 : -1;
+        }
+        final fechaA = a.fechaCreacion ?? '';
+        final fechaB = b.fechaCreacion ?? '';
+        return fechaB.compareTo(fechaA);
+      });
+      setState(() => _anuncios = anuncios);
+    } catch (e) {
+      setState(() => _error = 'Error al cargar anuncios');
+    }
+    setState(() => _isLoading = false);
+  }
+
+  String _formatFecha(String? fecha) {
+    if (fecha == null || fecha.length < 10) return '';
+    final parts = fecha.substring(0, 10).split('-');
+    if (parts.length != 3) return fecha;
+    final meses = [
+      'ene',
+      'feb',
+      'mar',
+      'abr',
+      'may',
+      'jun',
+      'jul',
+      'ago',
+      'sep',
+      'oct',
+      'nov',
+      'dic',
+    ];
+    final mes = int.tryParse(parts[1]);
+    if (mes == null || mes < 1 || mes > 12) return fecha;
+    return '${parts[2]} ${meses[mes - 1]} ${parts[0]}';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
-      bottomNavigationBar: _AnnouncementsBottomNavBar(userName: userName),
+      bottomNavigationBar: _AnnouncementsBottomNavBar(
+        userName: widget.userName,
+        token: widget.token,
+      ),
       body: SafeArea(
         child: Column(
           children: [
             const _AnnouncementsHeader(),
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 16),
-                    _AnnouncementCard(
-                      title: 'Mantenimiento de Ascensores',
-                      description:
-                          'Recordatorio: Mantenimiento programado del ascensor este viernes de 9:00 AM a 1:00 PM. Por favor, planifique sus actividades en consecuencia.',
-                      timeAgo: 'Hace 2 horas',
-                      priority: 'Importante',
-                      priorityColor: const Color(0xFF15806C),
-                    ),
-                    const SizedBox(height: 12),
-                    _AnnouncementCard(
-                      title: 'Reunión de Condominio',
-                      description:
-                          'Se convoca a todos los residentes a la reunión mensual del condominio que se llevará a cabo el próximo martes 28 de enero a las 7:00 PM en el salón comunal.',
-                      timeAgo: 'Hace 1 día',
-                      priority: 'Información',
-                      priorityColor: const Color(0xFF2196F3),
-                    ),
-                    const SizedBox(height: 12),
-                    _AnnouncementCard(
-                      title: 'Corte Programado de Agua',
-                      description:
-                          'Por trabajos de mantenimiento en la red hidráulica, habrá corte de agua este miércoles de 8:00 AM a 12:00 PM. Se recomienda almacenar agua para uso necesario.',
-                      timeAgo: 'Hace 3 días',
-                      priority: 'Urgente',
-                      priorityColor: const Color(0xFFFF9800),
-                    ),
-                    const SizedBox(height: 12),
-                    _AnnouncementCard(
-                      title: 'Nuevas Medidas de Seguridad',
-                      description:
-                          'A partir del próximo mes, se implementarán nuevas medidas de seguridad en el acceso principal. Todos los residentes deberán registrar a sus visitas con 24 horas de anticipación.',
-                      timeAgo: 'Hace 5 días',
-                      priority: 'Aviso',
-                      priorityColor: const Color(0xFF9C27B0),
-                    ),
-                    const SizedBox(height: 24),
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 20),
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 12,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.announcement_outlined,
-                            size: 60,
-                            color: Color(0xFFFF9800),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Pantalla en construcción',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF333333),
+              child:
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _error != null
+                      ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _error!,
+                              style: const TextStyle(color: Colors.red),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Esta pantalla mostrará todos los anuncios y avisos importantes del administrador del condominio.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Color(0xFF666666),
-                              height: 1.5,
+                            const SizedBox(height: 12),
+                            ElevatedButton(
+                              onPressed: _cargarAnuncios,
+                              child: const Text('Reintentar'),
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          ElevatedButton(
-                            onPressed: () {
-                              // Lógica para marcar como leídos
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF9800),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 16,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                          ],
+                        ),
+                      )
+                      : _anuncios.isEmpty
+                      ? const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.announcement_outlined,
+                              size: 64,
+                              color: Colors.grey,
                             ),
-                            child: const Text(
-                              'Marcar todos como leídos',
+                            SizedBox(height: 16),
+                            Text(
+                              'No hay anuncios disponibles',
                               style: TextStyle(
                                 fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
+                                color: Colors.grey,
                               ),
                             ),
+                          ],
+                        ),
+                      )
+                      : RefreshIndicator(
+                        onRefresh: _cargarAnuncios,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
                           ),
-                        ],
+                          itemCount: _anuncios.length,
+                          itemBuilder:
+                              (ctx, i) => _AnuncioCard(
+                                anuncio: _anuncios[i],
+                                fechaFormateada: _formatFecha(
+                                  _anuncios[i].fechaCreacion,
+                                ),
+                              ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-                ),
-              ),
             ),
           ],
         ),
@@ -136,8 +157,6 @@ class AnnouncementsScreen extends StatelessWidget {
     );
   }
 }
-
-// ================== HEADER DE ANUNCIOS ==================
 
 class _AnnouncementsHeader extends StatelessWidget {
   const _AnnouncementsHeader();
@@ -175,31 +194,24 @@ class _AnnouncementsHeader extends StatelessWidget {
   }
 }
 
-// ================== TARJETA DE ANUNCIO ==================
+class _AnuncioCard extends StatelessWidget {
+  final Anuncio anuncio;
+  final String fechaFormateada;
 
-class _AnnouncementCard extends StatelessWidget {
-  final String title;
-  final String description;
-  final String timeAgo;
-  final String priority;
-  final Color priorityColor;
-
-  const _AnnouncementCard({
-    required this.title,
-    required this.description,
-    required this.timeAgo,
-    required this.priority,
-    required this.priorityColor,
-  });
+  const _AnuncioCard({required this.anuncio, required this.fechaFormateada});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border:
+            anuncio.destacado
+                ? Border.all(color: const Color(0xFFFF9800), width: 1.5)
+                : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -212,32 +224,65 @@ class _AnnouncementCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: priorityColor.withOpacity(0.1),
+                  color: const Color(0xFFFF9800).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.apartment, color: priorityColor, size: 20),
+                child: Icon(
+                  anuncio.destacado ? Icons.star : Icons.apartment,
+                  color:
+                      anuncio.destacado
+                          ? const Color(0xFFFF9800)
+                          : const Color(0xFFFF9800),
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                        color: Color(0xFF333333),
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            anuncio.titulo,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                              color: Color(0xFF333333),
+                            ),
+                          ),
+                        ),
+                        if (anuncio.destacado)
+                          Container(
+                            margin: const EdgeInsets.only(left: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF9800).withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Icon(
+                              Icons.star,
+                              size: 14,
+                              color: Color(0xFFFF9800),
+                            ),
+                          ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
-                      timeAgo,
+                      anuncio.creadorNombre != null
+                          ? '${anuncio.creadorNombre} • $fechaFormateada'
+                          : fechaFormateada,
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.grey,
@@ -247,42 +292,16 @@ class _AnnouncementCard extends StatelessWidget {
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.more_vert, size: 20, color: Colors.grey),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            description,
+            anuncio.contenido,
             style: const TextStyle(
               fontSize: 14,
               color: Color(0xFF555555),
               height: 1.4,
             ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: priorityColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  priority,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: priorityColor,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -290,12 +309,11 @@ class _AnnouncementCard extends StatelessWidget {
   }
 }
 
-// ================== BOTTOM NAVIGATION BAR ==================
-
 class _AnnouncementsBottomNavBar extends StatelessWidget {
   final String userName;
+  final String? token;
 
-  const _AnnouncementsBottomNavBar({required this.userName});
+  const _AnnouncementsBottomNavBar({required this.userName, this.token});
 
   @override
   Widget build(BuildContext context) {
@@ -311,14 +329,15 @@ class _AnnouncementsBottomNavBar extends StatelessWidget {
         ],
       ),
       child: BottomNavigationBar(
-        currentIndex: 2, // Índice para notificaciones
+        currentIndex: 2,
         onTap: (index) {
           switch (index) {
             case 0:
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => DashboardScreen(userName: userName),
+                  builder:
+                      (_) => DashboardScreen(userName: userName, token: token),
                 ),
               );
               break;
@@ -326,7 +345,8 @@ class _AnnouncementsBottomNavBar extends StatelessWidget {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => ProfileScreen(userName: userName),
+                  builder:
+                      (_) => ProfileScreen(userName: userName, token: token),
                 ),
               );
               break;

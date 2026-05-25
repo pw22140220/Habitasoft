@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../auth/home_screen.dart';
 import 'dashboard.dart';
 import 'amenities_screen.dart';
 import 'notifications_screen.dart';
+
 import 'account_settings_screen.dart';
+import 'edit_profile_screen.dart';
+import 'change_password_screen.dart';
 import 'privacy_security_screen.dart';
 import '../../services/biometric_preferences_service.dart';
+import '../../services/perfil_service.dart';
 
 // ==== PALETA DE COLORES (MISMO QUE HOME SCREEN) ====
 const Color topGreen = Color(0xFF0A896E);
@@ -17,8 +22,9 @@ const Color kLightGray = Color(0xFFF5F6FA);
 
 class ProfileScreen extends StatefulWidget {
   final String userName;
+  final String? token;
 
-  const ProfileScreen({super.key, required this.userName});
+  const ProfileScreen({super.key, required this.userName, this.token});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -28,10 +34,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _notifPrefs = true;
   bool _notifications = true;
 
-  // Datos del usuario (cargados desde shared_preferences)
-  String _userFullName = 'Juan Pérez';
-  String _userEmail = 'juan.perez@condominio.com';
-  String _userUnit = 'Torre A - Apto 301';
+  // Datos del usuario
+  String _userFullName = '';
+  String _userEmail = '';
+  String _userUnit = '';
+  String _userRol = 'Residente';
+
+  UsuarioPerfil? _perfil;
+  bool _profileLoading = true;
 
   @override
   void initState() {
@@ -39,12 +49,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadUserData();
   }
 
-  // Cargar datos del usuario desde shared_preferences
   Future<void> _loadUserData() async {
     final name = await BiometricPreferencesService.getUserName();
     final email = await BiometricPreferencesService.getUserEmail();
     final unit = await BiometricPreferencesService.getUserUnit();
-
     if (mounted) {
       setState(() {
         _userFullName = name;
@@ -52,6 +60,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _userUnit = unit;
       });
     }
+
+    if (widget.token != null) {
+      try {
+        final service = PerfilService(token: widget.token);
+        final perfil = await service.obtenerPerfil();
+        if (mounted) {
+          setState(() {
+            _perfil = perfil;
+            _userFullName = perfil.nombre;
+            _userEmail = perfil.email;
+            _userRol = perfil.rol ?? 'Residente';
+            if (perfil.numeroUnidad != null) _userUnit = perfil.numeroUnidad!;
+          });
+        }
+      } catch (_) {}
+    }
+    if (mounted) setState(() => _profileLoading = false);
   }
 
   // Función para abrir WhatsApp de soporte
@@ -265,13 +290,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Icons.chevron_right,
                             color: Colors.grey,
                           ),
-                          onTap: () {
-                            Navigator.push(
+                          onTap: () async {
+                            final updated = await Navigator.push<bool>(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const AccountSettingsScreen(),
+                                builder:
+                                    (_) =>
+                                        EditProfileScreen(token: widget.token),
                               ),
                             );
+                            if (updated == true) _loadUserData();
                           },
                         ),
                         const Divider(height: 1, indent: 16, endIndent: 16),
@@ -377,9 +405,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               color: Color(0xFFD32F2F),
                             ),
                           ),
-                          onTap: () {
-                            // TODO: Implementar logout
-                            Navigator.pushReplacementNamed(context, '/login');
+                          onTap: () async {
+                            await BiometricPreferencesService.clearSession();
+                            if (!context.mounted) return;
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const HomeScreen(),
+                              ),
+                              (route) => false,
+                            );
                           },
                         ),
                       ],

@@ -5,6 +5,9 @@ import 'notifications_screen.dart';
 import 'qr_generation_screen.dart';
 import 'announcements_screen.dart';
 import 'payment_reminders_screen.dart';
+import '../../services/anuncio_service.dart';
+import '../../services/auth_service.dart';
+import '../../models/anuncio_model.dart';
 
 // ====== CONSTANTES DE DISEÑO ======
 const double kCardsOverlap = 33;
@@ -30,7 +33,7 @@ class DashboardScreen extends StatelessWidget {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              _Header(userName: userName),
+              _Header(userName: userName, token: token),
               Transform.translate(
                 offset: const Offset(0, -kCardsOverlap),
                 child: _OptionsGrid(userName: userName, token: token),
@@ -49,8 +52,9 @@ class DashboardScreen extends StatelessWidget {
 
 class _Header extends StatelessWidget {
   final String userName;
+  final String? token;
 
-  const _Header({required this.userName});
+  const _Header({required this.userName, this.token});
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +100,7 @@ class _Header extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const NotificationsScreen(),
+                      builder: (_) => NotificationsScreen(token: token),
                     ),
                   );
                 },
@@ -314,11 +318,43 @@ class _DashboardCard extends StatelessWidget {
 
 // ================== VISTA PREVIA DE ANUNCIOS ==================
 
-class _AnnouncementsPreviewSection extends StatelessWidget {
+class _AnnouncementsPreviewSection extends StatefulWidget {
   final String userName;
   final String? token;
 
   const _AnnouncementsPreviewSection({required this.userName, this.token});
+
+  @override
+  State<_AnnouncementsPreviewSection> createState() =>
+      _AnnouncementsPreviewSectionState();
+}
+
+class _AnnouncementsPreviewSectionState
+    extends State<_AnnouncementsPreviewSection> {
+  List<Anuncio> _anuncios = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+  }
+
+  Future<void> _cargar() async {
+    final condominioId = await AuthService.obtenerCondominioId(widget.token);
+    try {
+      final service = AnuncioService(token: widget.token);
+      final anuncios = await service.listarResidente(condominioId);
+      anuncios.sort((a, b) {
+        if (a.destacado != b.destacado) return b.destacado ? 1 : -1;
+        final fa = a.fechaCreacion ?? '';
+        final fb = b.fechaCreacion ?? '';
+        return fb.compareTo(fa);
+      });
+      if (mounted) setState(() => _anuncios = anuncios.take(2).toList());
+    } catch (_) {}
+    if (mounted) setState(() => _isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -344,8 +380,8 @@ class _AnnouncementsPreviewSection extends StatelessWidget {
                     MaterialPageRoute(
                       builder:
                           (_) => AnnouncementsScreen(
-                            userName: userName,
-                            token: token,
+                            userName: widget.userName,
+                            token: widget.token,
                           ),
                     ),
                   );
@@ -368,12 +404,115 @@ class _AnnouncementsPreviewSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: _AnnouncementCard(),
-        ),
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: SizedBox(
+              height: 80,
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
+          )
+        else if (_anuncios.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: kCardShadow,
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Text(
+                  'No hay anuncios recientes',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+            ),
+          )
+        else
+          ...List.generate(
+            _anuncios.length,
+            (i) => Padding(
+              padding: const EdgeInsets.only(bottom: 8, left: 20, right: 20),
+              child: _MiniAnuncioCard(anuncio: _anuncios[i]),
+            ),
+          ),
         const SizedBox(height: 24),
       ],
+    );
+  }
+}
+
+class _MiniAnuncioCard extends StatelessWidget {
+  final Anuncio anuncio;
+  const _MiniAnuncioCard({required this.anuncio});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border:
+            anuncio.destacado
+                ? Border.all(color: const Color(0xFFFF9800), width: 1.5)
+                : null,
+        boxShadow: [
+          BoxShadow(
+            color: kCardShadow,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            anuncio.destacado ? Icons.star : Icons.campaign_outlined,
+            color: anuncio.destacado ? const Color(0xFFFF9800) : kPrimaryBlue,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  anuncio.titulo,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: Color(0xFF333333),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  anuncio.contenido,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF555555),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -521,7 +660,9 @@ class _BottomNavBarState extends State<_BottomNavBar> {
       case 2:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+          MaterialPageRoute(
+            builder: (_) => NotificationsScreen(token: widget.token),
+          ),
         );
         break;
       case 3:

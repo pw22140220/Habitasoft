@@ -49,44 +49,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkSavedSession();
-    });
-  }
-
-  Future<void> _checkSavedSession() async {
-    final hasSession = await BiometricPreferencesService.hasSession();
-    if (!hasSession || !mounted) return;
-
-    final token = await BiometricPreferencesService.getToken();
-    final userName = await BiometricPreferencesService.getUserName();
-    final role = await BiometricPreferencesService.getUserRole();
-
-    if (token == null ||
-        token.startsWith('mock-') ||
-        userName.isEmpty ||
-        role == null ||
-        !mounted) {
-      await BiometricPreferencesService.clearSession();
-      return;
-    }
-
-    try {
-      final service = PerfilService(token: token);
-      await service.obtenerPerfil();
-    } catch (_) {
-      await BiometricPreferencesService.clearSession();
-      if (mounted) setState(() {});
-      return;
-    }
-
-    if (!mounted) return;
-    final loginResponse = LoginResponse(
-      userName: userName,
-      userRole: role,
-      accessToken: token,
-    );
-    _navigateToDashboard(loginResponse);
   }
 
   @override
@@ -300,12 +262,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Navegar al Dashboard según el rol
   void _navigateToDashboard(LoginResponse loginResponse) {
+    print(
+      'DEBUG: Navegando con rol: ${loginResponse.userRole}, user: ${loginResponse.userName}, token: ${loginResponse.accessToken?.substring(0, 10)}...',
+    );
     if (loginResponse.accessToken != null) {
       BiometricPreferencesService.setSession(
         loginResponse.accessToken!,
         loginResponse.userRole,
       );
     }
+    print('DEBUG: userRole = "${loginResponse.userRole}"');
     if (loginResponse.userRole == 'admin') {
       // Navegar al AdminShell
       Navigator.pushReplacement(

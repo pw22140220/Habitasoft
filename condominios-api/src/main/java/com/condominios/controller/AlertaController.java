@@ -74,7 +74,7 @@ public class AlertaController {
     @GetMapping("/api/residente/alertas")
     @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'RESIDENTE')")
     public ResponseEntity<Page<AlertaResponse>> listarResidente(
-            @RequestParam Long condominioId,
+            @RequestParam(name = "condominioId") Long condominioId,
             @PageableDefault(size = 10) Pageable pageable) {
         return ResponseEntity.ok(alertaService.listarActivasPorCondominio(condominioId, pageable));
     }
@@ -82,7 +82,7 @@ public class AlertaController {
     @GetMapping("/api/guardia/alertas")
     @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'GUARDIA')")
     public ResponseEntity<Page<AlertaResponse>> listarGuardia(
-            @RequestParam Long condominioId,
+            @RequestParam(name = "condominioId") Long condominioId,
             @PageableDefault(size = 10) Pageable pageable) {
         return ResponseEntity.ok(alertaService.listarActivasPorCondominio(condominioId, pageable));
     }

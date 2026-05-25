@@ -1,213 +1,185 @@
 import 'package:flutter/material.dart';
+import '../../models/alerta_model.dart';
+import '../../services/alerta_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/biometric_preferences_service.dart';
 
-// 1. MODELO DE DATOS
-class NotificacionAdmin {
-  final String titulo;
-  final String mensaje;
-  final String hora;
-  final String tipo; // 'pago', 'reserva', 'servicio', 'comunidad'
+class NotificationsScreen extends StatefulWidget {
+  final String? token;
 
-  NotificacionAdmin({
-    required this.titulo,
-    required this.mensaje,
-    required this.hora,
-    required this.tipo,
-  });
+  const NotificationsScreen({super.key, this.token});
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-// 2. DATOS SIMULADOS (Aquí llegarán los del Admin)
-List<NotificacionAdmin> mensajesDelAdmin = [
-  NotificacionAdmin(
-    tipo: 'pago',
-    titulo: 'New Dues Reminder',
-    mensaje: 'Your payment is due soon. Don\'t forget to pay your dues!',
-    hora: '2 min ago',
-  ),
-  NotificacionAdmin(
-    tipo: 'reserva',
-    titulo: 'Amenity Booking Confirmed',
-    mensaje: 'Your pool booking for Saturday is confirmed.',
-    hora: '5 min ago',
-  ),
-  NotificacionAdmin(
-    tipo: 'servicio',
-    titulo: 'Service Request Update',
-    mensaje: 'Your service request has been marked as completed.',
-    hora: '10 min ago',
-  ),
-  NotificacionAdmin(
-    tipo: 'comunidad',
-    titulo: 'New Community Post',
-    mensaje: 'Check out the latest post in the community feed.',
-    hora: '15 min ago',
-  ),
-  NotificacionAdmin(
-    tipo: 'comunidad',
-    titulo: 'Water Supply Alert',
-    mensaje: 'Maintenance scheduled for tomorrow at 9 AM.',
-    hora: '1 hour ago',
-  ),
-];
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  List<Alerta> _alertas = [];
+  bool _isLoading = false;
 
-// 3. PANTALLA PRINCIPAL DE NOTIFICACIONES
-class NotificationsScreen extends StatelessWidget {
-  const NotificationsScreen({super.key});
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _cargarAlertas());
+  }
+
+  Future<String?> _getToken() async {
+    if (widget.token != null) return widget.token;
+    return BiometricPreferencesService.getToken();
+  }
+
+  Future<void> _cargarAlertas() async {
+    final token = await _getToken();
+    if (token == null || token.startsWith('mock-')) return;
+    setState(() => _isLoading = true);
+    final condominioId = await AuthService.obtenerCondominioId(token);
+    try {
+      final service = AlertaService(token: token);
+      final alertas = await service.listarActivasPorCondominio(condominioId);
+      if (mounted) setState(() => _alertas = alertas);
+    } catch (_) {}
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  String _formatFecha(String? fecha) {
+    if (fecha == null || fecha.length < 10) return '';
+    final parts = fecha.substring(0, 10).split('-');
+    if (parts.length != 3) return '';
+    return '${parts[2]}/${parts[1]}/${parts[0]}';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              // HEADER
-              Container(
-                width: double.infinity,
-                height: 130, // Un poco más compacto para sub-pantalla
-                padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
-                color: const Color(0xFF00796B),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Botón atrás
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const Text(
-                      "Notifications",
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              decoration: const BoxDecoration(
+                color: Color(0xFFD32F2F),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Alertas',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    // Contador
-                    Stack(
-                      children: [
-                        const Icon(
-                          Icons.notifications,
+                  ),
+                  if (_alertas.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '${_alertas.length}',
+                        style: const TextStyle(
                           color: Colors.white,
-                          size: 28,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
                         ),
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              '${mensajesDelAdmin.length}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // LISTA
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 30.0),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 15,
-                      vertical: 0,
-                    ),
-                    itemCount: mensajesDelAdmin.length,
-                    itemBuilder: (context, index) {
-                      return TarjetaNotificacion(
-                        datos: mensajesDelAdmin[index],
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          // BOTÓN FLOTANTE
-          Positioned(
-            top: 105,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 25,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1565C0),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 5,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: const Text(
-                  "Mark All as Read",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                      ),
+                    )
+                  else
+                    const SizedBox(width: 28),
+                ],
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child:
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _alertas.isEmpty
+                      ? const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.notifications_off_outlined,
+                              size: 64,
+                              color: Colors.grey,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'No hay alertas',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                      : RefreshIndicator(
+                        onRefresh: _cargarAlertas,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                          itemCount: _alertas.length,
+                          itemBuilder:
+                              (ctx, i) => _AlertaCard(
+                                alerta: _alertas[i],
+                                fecha: _formatFecha(_alertas[i].fechaCreacion),
+                              ),
+                        ),
+                      ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// 4. TARJETA INDIVIDUAL
-class TarjetaNotificacion extends StatelessWidget {
-  final NotificacionAdmin datos;
-  const TarjetaNotificacion({super.key, required this.datos});
+class _AlertaCard extends StatelessWidget {
+  final Alerta alerta;
+  final String fecha;
+
+  const _AlertaCard({required this.alerta, required this.fecha});
 
   @override
   Widget build(BuildContext context) {
-    final bool esPago = datos.tipo == 'pago';
-    final Color colorFondo =
-        esPago ? const Color(0xFFFFEBEE) : const Color(0xFFE3F2FD);
-    final Color colorIcono =
-        esPago ? const Color(0xFFD32F2F) : const Color(0xFF1976D2);
-
-    IconData icono;
-    if (datos.tipo == 'pago')
-      icono = Icons.description;
-    else if (datos.tipo == 'reserva')
-      icono = Icons.event_available;
-    else if (datos.tipo == 'servicio')
-      icono = Icons.build;
-    else
-      icono = Icons.chat_bubble_outline;
+    final bool urgente =
+        alerta.prioridad == 'alta' || alerta.prioridad == 'urgente';
+    final Color accentColor =
+        urgente ? const Color(0xFFD32F2F) : const Color(0xFF1976D2);
+    final Color bgColor =
+        urgente ? const Color(0xFFFFEBEE) : const Color(0xFFE3F2FD);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(15),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(16),
+        border:
+            urgente
+                ? Border.all(color: accentColor.withOpacity(0.3), width: 1)
+                : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
@@ -216,15 +188,16 @@ class TarjetaNotificacion extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 45,
-            height: 45,
-            decoration: BoxDecoration(
-              color: colorFondo,
-              shape: BoxShape.circle,
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
+            child: Icon(
+              urgente ? Icons.warning : Icons.info_outline,
+              color: accentColor,
+              size: 22,
             ),
-            child: Icon(icono, color: colorIcono, size: 22),
           ),
-          const SizedBox(width: 15),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,26 +205,49 @@ class TarjetaNotificacion extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      datos.titulo,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
+                    Expanded(
+                      child: Text(
+                        alerta.titulo,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Color(0xFF333333),
+                        ),
                       ),
                     ),
-                    Text(
-                      datos.hora,
-                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-                    ),
+                    if (fecha.isNotEmpty)
+                      Text(
+                        fecha,
+                        style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                      ),
                   ],
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 6),
                 Text(
-                  datos.mensaje,
+                  alerta.mensaje,
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.4,
                     color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: accentColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    alerta.prioridad,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: accentColor,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],

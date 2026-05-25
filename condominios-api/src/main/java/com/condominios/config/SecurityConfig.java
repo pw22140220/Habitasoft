@@ -52,7 +52,6 @@ public class SecurityConfig {
                 ).hasRole("ADMINISTRADOR")
 
                 .requestMatchers(
-                    "/api/pagos/**",
                     "/api/notificaciones/**",
                     "/api/reservaciones/**",
                     "/api/amenidades/**",

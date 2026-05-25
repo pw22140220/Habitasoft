@@ -33,6 +33,7 @@ class AdminState extends ChangeNotifier {
   List<Unidad> get unidades => _unidades;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  String? get token => _token;
   bool get hasSelectedCondominium => _selectedCondominio != null;
 
   CondominioService get _condominioService => CondominioService(token: _token);

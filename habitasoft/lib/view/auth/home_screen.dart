@@ -281,7 +281,10 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         MaterialPageRoute(
           builder:
-              (context) => DashboardScreen(userName: loginResponse.userName),
+              (context) => DashboardScreen(
+                userName: loginResponse.userName,
+                token: loginResponse.accessToken,
+              ),
         ),
       );
     }

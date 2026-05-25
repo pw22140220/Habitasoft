@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
-import 'dashboard.dart';
-import 'profile_screen.dart';
 import '../../models/pago_model.dart';
 import '../../services/pago_service.dart';
 
-class PaymentRemindersScreen extends StatefulWidget {
+class ResidentePagosScreen extends StatefulWidget {
   final String userName;
   final String? token;
 
-  const PaymentRemindersScreen({super.key, required this.userName, this.token});
+  const ResidentePagosScreen({super.key, required this.userName, this.token});
 
   @override
-  State<PaymentRemindersScreen> createState() => _PaymentRemindersScreenState();
+  State<ResidentePagosScreen> createState() => _ResidentePagosScreenState();
 }
 
-class _PaymentRemindersScreenState extends State<PaymentRemindersScreen> {
+class _ResidentePagosScreenState extends State<ResidentePagosScreen> {
   List<Pago> _pagos = [];
   bool _isLoading = false;
   String? _error;
@@ -96,8 +94,8 @@ class _PaymentRemindersScreenState extends State<PaymentRemindersScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _PaymentHeader(onBack: () => Navigator.pop(context)),
-            _TotalOwedCard(totalAdeudado: totalAdeudado),
+            _buildHeader(),
+            _buildTotalAdeudado(totalAdeudado),
             Expanded(
               child:
                   _isLoading
@@ -114,29 +112,17 @@ class _PaymentRemindersScreenState extends State<PaymentRemindersScreen> {
                             vertical: 8,
                           ),
                           itemCount: _pagos.length,
-                          itemBuilder:
-                              (ctx, i) => _PaymentCard(
-                                pago: _pagos[i],
-                                onPagar: () => _marcarComoPagado(_pagos[i]),
-                              ),
+                          itemBuilder: (ctx, i) => _buildPagoCard(_pagos[i]),
                         ),
                       ),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: _PaymentBottomNavBar(userName: widget.userName),
     );
   }
-}
 
-class _PaymentHeader extends StatelessWidget {
-  final VoidCallback onBack;
-
-  const _PaymentHeader({required this.onBack});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildHeader() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 18),
@@ -152,31 +138,36 @@ class _PaymentHeader extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            onPressed: onBack,
+            onPressed: () => Navigator.pop(context),
             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           ),
           const SizedBox(width: 4),
-          const Text(
-            'Recordatorios de Pago',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Mis Pagos',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                widget.userName,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 14,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
-}
 
-class _TotalOwedCard extends StatelessWidget {
-  final double totalAdeudado;
-
-  const _TotalOwedCard({required this.totalAdeudado});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildTotalAdeudado(double total) {
     return Container(
       margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.all(20),
@@ -220,7 +211,7 @@ class _TotalOwedCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '\$${totalAdeudado.toStringAsFixed(2)}',
+                '\$${total.toStringAsFixed(2)}',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 28,
@@ -233,16 +224,8 @@ class _TotalOwedCard extends StatelessWidget {
       ),
     );
   }
-}
 
-class _PaymentCard extends StatelessWidget {
-  final Pago pago;
-  final VoidCallback onPagar;
-
-  const _PaymentCard({required this.pago, required this.onPagar});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildPagoCard(Pago pago) {
     final Color estadoColor;
     switch (pago.estado) {
       case 'pagado':
@@ -287,19 +270,22 @@ class _PaymentCard extends StatelessWidget {
                         color: Color(0xFF333333),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      pago.estado == 'vencido'
-                          ? 'Vencido: ${pago.fechaVencimiento ?? "—"}'
-                          : 'Vence: ${pago.fechaVencimiento ?? "—"}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color:
-                            pago.estado == 'vencido'
-                                ? Colors.red[400]
-                                : Colors.grey,
+                    if (pago.fechaVencimiento != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          pago.estado == 'vencido'
+                              ? 'Vencido: ${pago.fechaVencimiento}'
+                              : 'Vence: ${pago.fechaVencimiento}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color:
+                                pago.estado == 'vencido'
+                                    ? Colors.red[400]
+                                    : Colors.grey,
+                          ),
+                        ),
                       ),
-                    ),
                     if (pago.fechaPago != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
@@ -356,7 +342,7 @@ class _PaymentCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: onPagar,
+                  onPressed: () => _marcarComoPagado(pago),
                   style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,
                     minimumSize: Size.zero,
@@ -373,7 +359,7 @@ class _PaymentCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton(
-                  onPressed: onPagar,
+                  onPressed: () => _marcarComoPagado(pago),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange[700],
                     padding: const EdgeInsets.symmetric(
@@ -396,88 +382,6 @@ class _PaymentCard extends StatelessWidget {
               ],
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _PaymentBottomNavBar extends StatelessWidget {
-  final String userName;
-
-  const _PaymentBottomNavBar({required this.userName});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 16,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        currentIndex: 0,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => DashboardScreen(userName: userName),
-                ),
-              );
-              break;
-            case 3:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ProfileScreen(userName: userName),
-                ),
-              );
-              break;
-          }
-        },
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF0B64D8),
-        unselectedItemColor: const Color(0xFF9E9E9E),
-        selectedLabelStyle: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w400,
-        ),
-        showSelectedLabels: true,
-        showUnselectedLabels: true,
-        elevation: 0,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined, size: 24),
-            activeIcon: Icon(Icons.home, size: 24),
-            label: 'Inicio',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today_outlined, size: 24),
-            activeIcon: Icon(Icons.calendar_today, size: 24),
-            label: 'Calendario',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_none, size: 24),
-            activeIcon: Icon(Icons.notifications, size: 24),
-            label: 'Alertas',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline, size: 24),
-            activeIcon: Icon(Icons.person, size: 24),
-            label: 'Perfil',
-          ),
         ],
       ),
     );

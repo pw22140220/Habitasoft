@@ -17,8 +17,9 @@ const Color kCardShadow = Color(0x0A000000);
 
 class DashboardScreen extends StatelessWidget {
   final String userName;
+  final String? token;
 
-  const DashboardScreen({super.key, required this.userName});
+  const DashboardScreen({super.key, required this.userName, this.token});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +33,7 @@ class DashboardScreen extends StatelessWidget {
               _Header(userName: userName),
               Transform.translate(
                 offset: const Offset(0, -kCardsOverlap),
-                child: _OptionsGrid(userName: userName),
+                child: _OptionsGrid(userName: userName, token: token),
               ),
               const SizedBox(height: kCardsOverlap),
               const _AnnouncementsPreviewSection(),
@@ -145,7 +146,8 @@ class _Header extends StatelessWidget {
 
 class _OptionsGrid extends StatelessWidget {
   final String userName;
-  const _OptionsGrid({required this.userName});
+  final String? token;
+  const _OptionsGrid({required this.userName, this.token});
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +212,11 @@ class _OptionsGrid extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PaymentRemindersScreen(userName: userName),
+                  builder:
+                      (_) => PaymentRemindersScreen(
+                        userName: userName,
+                        token: token,
+                      ),
                 ),
               );
             },

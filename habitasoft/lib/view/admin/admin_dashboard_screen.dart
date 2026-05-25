@@ -4,7 +4,7 @@ import 'admin_state.dart';
 import 'admin_condominiums_screen.dart';
 import 'admin_anuncios_screen.dart';
 import 'admin_reservations_screen.dart';
-import 'admin_payments_screen.dart';
+import 'admin_pagos_screen.dart';
 import 'admin_residents_screen.dart';
 
 // Pantalla principal del dashboard del administrador
@@ -268,7 +268,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => const AdminPaymentsScreen(),
+                        builder: (context) => const AdminPagosScreen(),
                       ),
                     );
                   },

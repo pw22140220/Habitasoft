@@ -269,6 +269,25 @@ CREATE TABLE IF NOT EXISTS Guardia_Condominio (
     FOREIGN KEY (guardia_id) REFERENCES Usuarios(id) ON DELETE CASCADE,
     FOREIGN KEY (condominio_id) REFERENCES Condominios(id) ON DELETE CASCADE
 );
+-- =========================================
+-- TABLA ANUNCIOS (comunicados comunitarios)
+-- =========================================
+CREATE TABLE IF NOT EXISTS Anuncios (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    titulo VARCHAR(150) NOT NULL,
+    contenido TEXT NOT NULL,
+    condominio_id BIGINT NOT NULL,
+    creado_por_id BIGINT NOT NULL,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_expiracion DATE NULL,
+    activo BOOLEAN DEFAULT TRUE,
+    destacado BOOLEAN DEFAULT FALSE,
+    imagen_url VARCHAR(500) NULL,
+    
+    FOREIGN KEY (condominio_id) REFERENCES Condominios(id) ON DELETE CASCADE,
+    FOREIGN KEY (creado_por_id) REFERENCES Usuarios(id) ON DELETE CASCADE
+);
+
 
 -- =========================================
 -- CHECK CONSTRAINTS
@@ -358,7 +377,11 @@ CREATE INDEX idx_admin_condominio_condominio ON Admin_Condominio(condominio_id);
 -- guardia_condominio
 CREATE INDEX idx_guardia_condominio_guardia ON Guardia_Condominio(guardia_id);
 CREATE INDEX idx_guardia_condominio_condominio ON Guardia_Condominio(condominio_id);
-
+-- Anuncios
+CREATE INDEX idx_anuncios_condominio ON Anuncios(condominio_id);
+CREATE INDEX idx_anuncios_activo ON Anuncios(activo);
+CREATE INDEX idx_anuncios_destacado ON Anuncios(destacado);
+CREATE INDEX idx_anuncios_fecha_expiracion ON Anuncios(fecha_expiracion);
 -- =========================================
 -- VISTAS (VIEWS)
 -- =========================================

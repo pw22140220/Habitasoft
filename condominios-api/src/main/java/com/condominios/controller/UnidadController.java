@@ -83,8 +83,8 @@ public class UnidadController {
 
         if (residenteUnidadRepository.existsByUnidadId(id)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "No se puede eliminar la unidad porque tiene residentes asignados. "
-                    + "Reasigna los residentes a otra unidad primero.");
+                    "Esta unidad tiene residentes asignados y no se puede eliminar. "
+                    + "Primero edita los residentes para asignarles otra unidad, y luego intenta eliminar esta.");
         }
 
         unidadRepository.delete(unidad);

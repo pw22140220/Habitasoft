@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'admin_state.dart';
 import 'admin_condominiums_screen.dart';
-import 'admin_announcements_screen.dart';
+import 'admin_anuncios_screen.dart';
 import 'admin_reservations_screen.dart';
 import 'admin_payments_screen.dart';
 import 'admin_residents_screen.dart';
@@ -242,7 +242,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => const AdminAnnouncementsScreen(),
+                        builder: (context) => const AdminAnunciosScreen(),
                       ),
                     );
                   },

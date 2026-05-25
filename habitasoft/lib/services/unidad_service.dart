@@ -80,9 +80,9 @@ class UnidadService {
         .delete(url, headers: _headers)
         .timeout(const Duration(seconds: 10));
 
-    if (response.statusCode != 204) {
-      throw Exception('Error al eliminar unidad');
-    }
+    if (response.statusCode == 204) return;
+    final msg = _extractError(response.body);
+    throw Exception('$msg (código: ${response.statusCode})');
   }
 
   String _extractError(String body) {

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../models/alerta_model.dart';
 import '../../models/amenidad_model.dart';
+import '../../models/anuncio_model.dart';
 import '../../models/condominio_model.dart';
 import '../../models/unidad_model.dart';
 import '../../models/usuario_model.dart';
 import '../../services/alerta_service.dart';
 import '../../services/amenidad_service.dart';
+import '../../services/anuncio_service.dart';
 import '../../services/condominio_service.dart';
 import '../../services/unidad_service.dart';
 import '../../services/usuario_service.dart';
@@ -16,6 +18,7 @@ class AdminState extends ChangeNotifier {
   List<Condominio> _condominios = [];
   List<Alerta> _alertas = [];
   List<Amenidad> _amenidades = [];
+  List<Anuncio> _anuncios = [];
   List<Unidad> _unidades = [];
   List<Usuario> _usuarios = [];
   bool _isLoading = false;
@@ -25,6 +28,7 @@ class AdminState extends ChangeNotifier {
   List<Condominio> get condominios => _condominios;
   List<Alerta> get alertas => _alertas;
   List<Amenidad> get amenidades => _amenidades;
+  List<Anuncio> get anuncios => _anuncios;
   List<Usuario> get usuarios => _usuarios;
   List<Unidad> get unidades => _unidades;
   bool get isLoading => _isLoading;
@@ -34,6 +38,7 @@ class AdminState extends ChangeNotifier {
   CondominioService get _condominioService => CondominioService(token: _token);
   AlertaService get _alertaService => AlertaService(token: _token);
   AmenidadService get _amenidadService => AmenidadService(token: _token);
+  AnuncioService get _anuncioService => AnuncioService(token: _token);
   UsuarioService get _usuarioService => UsuarioService(token: _token);
   UnidadService get _unidadService => UnidadService(token: _token);
 
@@ -406,6 +411,67 @@ class AdminState extends ChangeNotifier {
           u.email.toLowerCase().contains(q) ||
           (u.telefono != null && u.telefono!.toLowerCase().contains(q));
     }).toList();
+  }
+
+  // ===================== ANUNCIOS =====================
+
+  Future<void> cargarAnuncios() async {
+    if (_token == null || _selectedCondominio == null) return;
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      _anuncios = await _anuncioService.listar(_selectedCondominio!.id);
+    } catch (e) {
+      _error = 'Error al cargar anuncios';
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> crearAnuncio(Map<String, dynamic> data) async {
+    if (_token == null || _selectedCondominio == null) return false;
+    try {
+      final nuevo = await _anuncioService.crear(data, _selectedCondominio!.id);
+      _anuncios.add(nuevo);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> actualizarAnuncio(int id, Map<String, dynamic> data) async {
+    if (_token == null) return false;
+    try {
+      final actualizado = await _anuncioService.actualizar(id, data);
+      final index = _anuncios.indexWhere((a) => a.id == id);
+      if (index != -1) {
+        _anuncios[index] = actualizado;
+      }
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> eliminarAnuncio(int id) async {
+    if (_token == null) return false;
+    try {
+      await _anuncioService.eliminar(id);
+      _anuncios.removeWhere((a) => a.id == id);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'Error al eliminar anuncio';
+      notifyListeners();
+      return false;
+    }
   }
 
   // ===================== UNIDADES =====================

@@ -246,6 +246,29 @@ CREATE TABLE IF NOT EXISTS Alertas (
     FOREIGN KEY (creado_por_id) REFERENCES Usuarios(id) ON DELETE CASCADE,
     FOREIGN KEY (condominio_id) REFERENCES Condominios(id) ON DELETE CASCADE
 );
+-- =========================================
+-- TABLA Admin Condominio (admin puede tener muchos condominios)
+-- =========================================
+CREATE TABLE IF NOT EXISTS Admin_Condominio (
+    admin_id BIGINT NOT NULL,
+    condominio_id BIGINT NOT NULL,
+    fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY (admin_id, condominio_id),
+    FOREIGN KEY (admin_id) REFERENCES Usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY (condominio_id) REFERENCES Condominios(id) ON DELETE CASCADE
+);
+-- =========================================
+-- TABLA Guardia Condominio
+-- =========================================
+CREATE TABLE IF NOT EXISTS Guardia_Condominio (
+    guardia_id BIGINT NOT NULL,
+    condominio_id BIGINT NOT NULL,
+    fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (guardia_id, condominio_id),
+    FOREIGN KEY (guardia_id) REFERENCES Usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY (condominio_id) REFERENCES Condominios(id) ON DELETE CASCADE
+);
 
 -- =========================================
 -- CHECK CONSTRAINTS
@@ -329,6 +352,13 @@ ON Pagos(estado);
 CREATE INDEX idx_alertas_condominio ON Alertas(condominio_id);
 CREATE INDEX idx_alertas_activa ON Alertas(activa);
 CREATE INDEX idx_alertas_fecha_expiracion ON Alertas(fecha_expiracion);
+-- Amind_Condominio
+CREATE INDEX idx_admin_condominio_admin ON Admin_Condominio(admin_id);
+CREATE INDEX idx_admin_condominio_condominio ON Admin_Condominio(condominio_id);
+-- guardia_condominio
+CREATE INDEX idx_guardia_condominio_guardia ON Guardia_Condominio(guardia_id);
+CREATE INDEX idx_guardia_condominio_condominio ON Guardia_Condominio(condominio_id);
+
 -- =========================================
 -- VISTAS (VIEWS)
 -- =========================================

@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import '../../models/alerta_model.dart';
 import '../../models/amenidad_model.dart';
 import '../../models/condominio_model.dart';
+import '../../models/unidad_model.dart';
+import '../../models/usuario_model.dart';
 import '../../services/alerta_service.dart';
 import '../../services/amenidad_service.dart';
 import '../../services/condominio_service.dart';
+import '../../services/unidad_service.dart';
+import '../../services/usuario_service.dart';
 
 class AdminState extends ChangeNotifier {
   String? _token;
@@ -12,6 +16,8 @@ class AdminState extends ChangeNotifier {
   List<Condominio> _condominios = [];
   List<Alerta> _alertas = [];
   List<Amenidad> _amenidades = [];
+  List<Unidad> _unidades = [];
+  List<Usuario> _usuarios = [];
   bool _isLoading = false;
   String? _error;
 
@@ -19,6 +25,8 @@ class AdminState extends ChangeNotifier {
   List<Condominio> get condominios => _condominios;
   List<Alerta> get alertas => _alertas;
   List<Amenidad> get amenidades => _amenidades;
+  List<Usuario> get usuarios => _usuarios;
+  List<Unidad> get unidades => _unidades;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasSelectedCondominium => _selectedCondominio != null;
@@ -26,6 +34,8 @@ class AdminState extends ChangeNotifier {
   CondominioService get _condominioService => CondominioService(token: _token);
   AlertaService get _alertaService => AlertaService(token: _token);
   AmenidadService get _amenidadService => AmenidadService(token: _token);
+  UsuarioService get _usuarioService => UsuarioService(token: _token);
+  UnidadService get _unidadService => UnidadService(token: _token);
 
   void setToken(String token) {
     _token = token;
@@ -309,6 +319,157 @@ class AdminState extends ChangeNotifier {
       return true;
     } catch (e) {
       _error = 'Error al eliminar amenidad';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ===================== USUARIOS =====================
+
+  Future<void> cargarUsuarios({String? search}) async {
+    if (_token == null || _selectedCondominio == null) return;
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _usuarios = await _usuarioService.listar(
+        _selectedCondominio!.id,
+        search: search,
+      );
+    } catch (e) {
+      _error = 'Error al cargar usuarios';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> crearUsuario(Map<String, dynamic> data) async {
+    if (_token == null || _selectedCondominio == null) return false;
+
+    try {
+      final nuevo = await _usuarioService.crear(data, _selectedCondominio!.id);
+      _usuarios.add(nuevo);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> actualizarUsuario(int id, Map<String, dynamic> data) async {
+    if (_token == null || _selectedCondominio == null) return false;
+
+    try {
+      final actualizado = await _usuarioService.actualizar(
+        id,
+        data,
+        _selectedCondominio!.id,
+      );
+      final index = _usuarios.indexWhere((u) => u.id == id);
+      if (index != -1) {
+        _usuarios[index] = actualizado;
+      }
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> eliminarUsuario(int id) async {
+    if (_token == null) return false;
+
+    try {
+      await _usuarioService.eliminar(id);
+      _usuarios.removeWhere((u) => u.id == id);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'Error al eliminar usuario';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  List<Usuario> searchUsuarios(String query) {
+    if (query.isEmpty) return _usuarios;
+    final q = query.toLowerCase();
+    return _usuarios.where((u) {
+      return u.nombre.toLowerCase().contains(q) ||
+          u.email.toLowerCase().contains(q) ||
+          (u.telefono != null && u.telefono!.toLowerCase().contains(q));
+    }).toList();
+  }
+
+  // ===================== UNIDADES =====================
+
+  Future<void> cargarUnidades() async {
+    if (_token == null || _selectedCondominio == null) return;
+    try {
+      _unidades = await _unidadService.listarPorCondominio(
+        _selectedCondominio!.id,
+      );
+      notifyListeners();
+    } catch (e) {
+      _error = 'Error al cargar unidades';
+      notifyListeners();
+    }
+  }
+
+  Future<bool> crearUnidad(String numeroUnidad) async {
+    if (_token == null || _selectedCondominio == null) return false;
+    try {
+      final nueva = await _unidadService.crear(
+        numeroUnidad,
+        _selectedCondominio!.id,
+      );
+      _unidades.add(nueva);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> actualizarUnidad(int id, String numeroUnidad) async {
+    if (_token == null || _selectedCondominio == null) return false;
+    try {
+      final actualizada = await _unidadService.actualizar(
+        id,
+        numeroUnidad,
+        _selectedCondominio!.id,
+      );
+      final index = _unidades.indexWhere((u) => u.id == id);
+      if (index != -1) {
+        _unidades[index] = actualizada;
+      }
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> eliminarUnidad(int id) async {
+    if (_token == null) return false;
+    try {
+      await _unidadService.eliminar(id);
+      _unidades.removeWhere((u) => u.id == id);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'Error al eliminar unidad';
       notifyListeners();
       return false;
     }

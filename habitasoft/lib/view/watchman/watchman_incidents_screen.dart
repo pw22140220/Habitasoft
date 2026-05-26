@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
-import 'incident_model.dart';
-import 'incident_detail_screen.dart';
+import 'package:provider/provider.dart';
+import '../../models/incidente_model.dart';
+import '../../providers/incidente_provider.dart';
 import 'new_incident_screen.dart';
+import 'incident_detail_screen.dart';
 
 class WatchmanIncidentsScreen extends StatefulWidget {
   final String userName;
+  final String? token;
 
-  const WatchmanIncidentsScreen({super.key, required this.userName});
+  const WatchmanIncidentsScreen({
+    super.key,
+    required this.userName,
+    this.token,
+  });
 
   @override
   State<WatchmanIncidentsScreen> createState() =>
@@ -22,20 +29,38 @@ class _WatchmanIncidentsScreenState extends State<WatchmanIncidentsScreen> {
     'en_progreso',
     'resuelto',
   ];
-  final List<String> _priorityFilters = ['Todas', 'Alta', 'Media', 'Baja'];
+  final List<String> _priorityFilters = ['Todas', 'ALTA', 'MEDIA', 'BAJA'];
 
-  List<Incident> get _filteredIncidents {
-    return mockIncidents.where((inc) {
+  bool _initialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final provider = context.read<IncidenteProvider>();
+        provider.setToken(widget.token);
+        provider.cargarMisIncidentes();
+      });
+    }
+  }
+
+  List<Incidente> get _filteredIncidents {
+    final provider = context.watch<IncidenteProvider>();
+    return provider.incidentes.where((inc) {
       final matchesStatus =
-          _selectedFilter == 'Todos' || inc.status == _selectedFilter;
+          _selectedFilter == 'Todos' || inc.estado == _selectedFilter;
       final matchesPriority =
-          _selectedPriority == 'Todas' || inc.priority == _selectedPriority;
+          _selectedPriority == 'Todas' || inc.prioridad == _selectedPriority;
       return matchesStatus && matchesPriority;
     }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<IncidenteProvider>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Incidentes'),
@@ -44,14 +69,18 @@ class _WatchmanIncidentsScreenState extends State<WatchmanIncidentsScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          final result = await Navigator.push<Incident>(
+          final result = await Navigator.push<bool>(
             context,
             MaterialPageRoute(
-              builder: (_) => NewIncidentScreen(userName: widget.userName),
+              builder:
+                  (_) => NewIncidentScreen(
+                    userName: widget.userName,
+                    token: widget.token,
+                  ),
             ),
           );
-          if (result != null && mounted) {
-            setState(() {});
+          if (result == true && mounted) {
+            provider.cargarMisIncidentes();
           }
         },
         backgroundColor: const Color(0xFF15806C),
@@ -64,7 +93,6 @@ class _WatchmanIncidentsScreenState extends State<WatchmanIncidentsScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Filtros
           Container(
             padding: const EdgeInsets.all(16),
             color: Colors.white,
@@ -149,8 +177,6 @@ class _WatchmanIncidentsScreenState extends State<WatchmanIncidentsScreen> {
               ],
             ),
           ),
-
-          // Contador
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
@@ -158,11 +184,11 @@ class _WatchmanIncidentsScreenState extends State<WatchmanIncidentsScreen> {
               style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
           ),
-
-          // Lista de incidentes
           Expanded(
             child:
-                _filteredIncidents.isEmpty
+                provider.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _filteredIncidents.isEmpty
                     ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -188,17 +214,50 @@ class _WatchmanIncidentsScreenState extends State<WatchmanIncidentsScreen> {
                         return _IncidentCard(
                           incident: inc,
                           onTap: () async {
-                            await Navigator.push(
+                            final changed = await Navigator.push<bool>(
                               context,
                               MaterialPageRoute(
                                 builder:
                                     (_) => IncidentDetailScreen(
                                       incident: inc,
                                       userName: widget.userName,
+                                      token: widget.token,
                                     ),
                               ),
                             );
-                            if (mounted) setState(() {});
+                            if (changed == true && mounted) {
+                              provider.cargarMisIncidentes();
+                            }
+                          },
+                          onDelete: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder:
+                                  (ctx) => AlertDialog(
+                                    title: const Text('Eliminar incidente'),
+                                    content: const Text(
+                                      '¿Estás seguro de eliminar este incidente?',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed:
+                                            () => Navigator.pop(ctx, false),
+                                        child: const Text('Cancelar'),
+                                      ),
+                                      TextButton(
+                                        onPressed:
+                                            () => Navigator.pop(ctx, true),
+                                        child: const Text(
+                                          'Eliminar',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                            );
+                            if (confirm == true) {
+                              await provider.eliminar(inc.id);
+                            }
                           },
                         );
                       },
@@ -224,11 +283,11 @@ class _WatchmanIncidentsScreenState extends State<WatchmanIncidentsScreen> {
 
   String _priorityLabel(String p) {
     switch (p) {
-      case 'Alta':
+      case 'ALTA':
         return 'Alta';
-      case 'Media':
+      case 'MEDIA':
         return 'Media';
-      case 'Baja':
+      case 'BAJA':
         return 'Baja';
       default:
         return 'Todas';
@@ -237,13 +296,18 @@ class _WatchmanIncidentsScreenState extends State<WatchmanIncidentsScreen> {
 }
 
 class _IncidentCard extends StatelessWidget {
-  final Incident incident;
+  final Incidente incident;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
-  const _IncidentCard({required this.incident, required this.onTap});
+  const _IncidentCard({
+    required this.incident,
+    required this.onTap,
+    required this.onDelete,
+  });
 
-  Color _statusColor(String status) {
-    switch (status) {
+  Color _statusColor(String estado) {
+    switch (estado) {
       case 'nuevo':
         return Colors.red;
       case 'en_progreso':
@@ -255,21 +319,21 @@ class _IncidentCard extends StatelessWidget {
     }
   }
 
-  Color _priorityColor(String priority) {
-    switch (priority) {
-      case 'Alta':
+  Color _priorityColor(String prioridad) {
+    switch (prioridad) {
+      case 'ALTA':
         return Colors.red;
-      case 'Media':
+      case 'MEDIA':
         return Colors.orange;
-      case 'Baja':
+      case 'BAJA':
         return Colors.blue;
       default:
         return Colors.grey;
     }
   }
 
-  IconData _typeIcon(String type) {
-    switch (type) {
+  IconData _typeIcon(String tipo) {
+    switch (tipo) {
       case 'Seguridad':
         return Icons.security;
       case 'Mantenimiento':
@@ -279,6 +343,17 @@ class _IncidentCard extends StatelessWidget {
       default:
         return Icons.report;
     }
+  }
+
+  String _formatDate(String? dateStr) {
+    if (dateStr == null) return '';
+    final dt = DateTime.tryParse(dateStr);
+    if (dt == null) return '';
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 60) return 'Hace ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'Hace ${diff.inHours} h';
+    return '${dt.day}/${dt.month}/${dt.year}';
   }
 
   @override
@@ -297,7 +372,7 @@ class _IncidentCard extends StatelessWidget {
         ],
         border: Border.all(
           color:
-              incident.status == 'nuevo'
+              incident.estado == 'nuevo'
                   ? Colors.red.withOpacity(0.2)
                   : Colors.grey[200]!,
         ),
@@ -318,13 +393,13 @@ class _IncidentCard extends StatelessWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: _statusColor(incident.status).withOpacity(0.1),
+                        color: _statusColor(incident.estado).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
-                        _typeIcon(incident.type),
+                        _typeIcon(incident.tipo),
                         size: 20,
-                        color: _statusColor(incident.status),
+                        color: _statusColor(incident.estado),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -333,7 +408,7 @@ class _IncidentCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${incident.type} - ${incident.location}',
+                            '${incident.tipo} - ${incident.ubicacion}',
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
@@ -342,7 +417,7 @@ class _IncidentCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            _formatDate(incident.createdAt),
+                            _formatDate(incident.fechaHoraIncidente),
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[600],
@@ -351,12 +426,12 @@ class _IncidentCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    _buildStatusBadge(incident.status),
+                    _buildStatusBadge(incident.estado),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  incident.description,
+                  incident.descripcion,
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.grey[700],
@@ -375,20 +450,31 @@ class _IncidentCard extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: _priorityColor(
-                          incident.priority,
+                          incident.prioridad,
                         ).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        incident.priority,
+                        incident.prioridadLabel,
                         style: TextStyle(
                           fontSize: 11,
-                          color: _priorityColor(incident.priority),
+                          color: _priorityColor(incident.prioridad),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
                     const Spacer(),
+                    IconButton(
+                      icon: Icon(
+                        Icons.delete_outline,
+                        size: 20,
+                        color: Colors.grey[400],
+                      ),
+                      onPressed: onDelete,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 8),
                     Icon(
                       Icons.chevron_right,
                       size: 20,
@@ -404,10 +490,10 @@ class _IncidentCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBadge(String status) {
+  Widget _buildStatusBadge(String estado) {
     Color color;
     String label;
-    switch (status) {
+    switch (estado) {
       case 'nuevo':
         color = Colors.red;
         label = 'Nuevo';
@@ -419,7 +505,7 @@ class _IncidentCard extends StatelessWidget {
         label = 'Resuelto';
       default:
         color = Colors.grey;
-        label = status;
+        label = estado;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -436,13 +522,5 @@ class _IncidentCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatDate(DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inMinutes < 60) return 'Hace ${diff.inMinutes} min';
-    if (diff.inHours < 24) return 'Hace ${diff.inHours} h';
-    return '${dt.day}/${dt.month}/${dt.year}';
   }
 }

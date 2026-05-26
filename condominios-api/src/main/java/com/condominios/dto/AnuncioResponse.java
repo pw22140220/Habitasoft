@@ -17,6 +17,8 @@ public class AnuncioResponse {
     private Boolean destacado;
     private String imagenUrl;
 
+    private String destinatario;
+
     public Long getId() {
         return id;
     }
@@ -103,5 +105,13 @@ public class AnuncioResponse {
 
     public void setImagenUrl(String imagenUrl) {
         this.imagenUrl = imagenUrl;
+    }
+
+    public String getDestinatario() {
+        return destinatario;
+    }
+
+    public void setDestinatario(String destinatario) {
+        this.destinatario = destinatario;
     }
 }

@@ -1,40 +1,43 @@
 import 'package:flutter/material.dart';
-import 'watchman_notifications_screen.dart';
+import 'watchman_alerts_screen.dart';
 import 'watchman_qr_scanner_screen.dart';
-import 'watchman_announcements_screen.dart';
 import 'watchman_incidents_screen.dart';
 import 'watchman_history_screen.dart';
+import 'watchman_announcements_screen.dart';
 
-// ====== CONSTANTES DE DISEÑO ======
 const double kCardsOverlap = 33;
 const double kBlueExtraHeight = 60;
 const Color kPrimaryGreen = Color(0xFF15806C);
 const Color kPrimaryBlue = Color(0xFF0B64D8);
 const Color kLightGray = Color(0xFFF5F6FA);
 const Color kCardShadow = Color(0x0A000000);
-// ==================================
 
 class WatchmanDashboardScreen extends StatelessWidget {
   final String userName;
+  final String? token;
 
-  const WatchmanDashboardScreen({super.key, required this.userName});
+  const WatchmanDashboardScreen({
+    super.key,
+    required this.userName,
+    this.token,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kLightGray,
-      bottomNavigationBar: _BottomNavBar(userName: userName),
+      bottomNavigationBar: _BottomNavBar(userName: userName, token: token),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             children: [
-              _Header(userName: userName),
+              _Header(userName: userName, token: token),
               Transform.translate(
                 offset: const Offset(0, -kCardsOverlap),
-                child: _OptionsGrid(userName: userName),
+                child: _OptionsGrid(userName: userName, token: token),
               ),
               const SizedBox(height: kCardsOverlap),
-              const _AnnouncementsPreviewSection(),
+              _AnnouncementsPreviewSection(token: token),
             ],
           ),
         ),
@@ -43,12 +46,10 @@ class WatchmanDashboardScreen extends StatelessWidget {
   }
 }
 
-// ================== HEADER MODERNO ==================
-
 class _Header extends StatelessWidget {
   final String userName;
-
-  const _Header({required this.userName});
+  final String? token;
+  const _Header({required this.userName, this.token});
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +78,6 @@ class _Header extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // FILA SUPERIOR: Dashboard + Notificaciones
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -90,14 +90,13 @@ class _Header extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const WatchmanNotificationsScreen(),
+                onTap:
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => WatchmanAlertsScreen(token: token),
+                      ),
                     ),
-                  );
-                },
                 child: Container(
                   width: 36,
                   height: 36,
@@ -140,11 +139,10 @@ class _Header extends StatelessWidget {
   }
 }
 
-// ================== GRID DE MÓDULOS PRINCIPALES ==================
-
 class _OptionsGrid extends StatelessWidget {
   final String userName;
-  const _OptionsGrid({required this.userName});
+  final String? token;
+  const _OptionsGrid({required this.userName, this.token});
 
   @override
   Widget build(BuildContext context) {
@@ -163,57 +161,68 @@ class _OptionsGrid extends StatelessWidget {
             label: 'Escanear QR',
             subtitle: 'Validar acceso',
             color: const Color(0xFF4CAF50),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => WatchmanQRScannerScreen(userName: userName),
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (_) => WatchmanQRScannerScreen(
+                          userName: userName,
+                          token: token,
+                        ),
+                  ),
                 ),
-              );
-            },
           ),
           _DashboardCard(
             icon: Icons.announcement_outlined,
             label: 'Avisos del Admin',
             subtitle: 'Comunicados importantes',
             color: const Color(0xFF2196F3),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (_) => WatchmanAnnouncementsScreen(userName: userName),
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (_) => WatchmanAnnouncementsScreen(
+                          userName: userName,
+                          token: token,
+                        ),
+                  ),
                 ),
-              );
-            },
           ),
           _DashboardCard(
             icon: Icons.security,
             label: 'Incidentes',
             subtitle: 'Reportar problemas',
             color: const Color(0xFFFF9800),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => WatchmanIncidentsScreen(userName: userName),
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (_) => WatchmanIncidentsScreen(
+                          userName: userName,
+                          token: token,
+                        ),
+                  ),
                 ),
-              );
-            },
           ),
           _DashboardCard(
             icon: Icons.history,
             label: 'Historial',
             subtitle: 'Registro de accesos',
             color: const Color(0xFF9C27B0),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => WatchmanHistoryScreen(userName: userName),
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (_) => WatchmanHistoryScreen(
+                          userName: userName,
+                          token: token,
+                        ),
+                  ),
                 ),
-              );
-            },
           ),
         ],
       ),
@@ -301,10 +310,9 @@ class _DashboardCard extends StatelessWidget {
   }
 }
 
-// ================== VISTA PREVIA DE ANUNCIOS ==================
-
 class _AnnouncementsPreviewSection extends StatelessWidget {
-  const _AnnouncementsPreviewSection();
+  final String? token;
+  const _AnnouncementsPreviewSection({this.token});
 
   @override
   Widget build(BuildContext context) {
@@ -324,17 +332,13 @@ class _AnnouncementsPreviewSection extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (_) => WatchmanAnnouncementsScreen(
-                            userName: 'Vigilante',
-                          ),
+                onPressed:
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => WatchmanAlertsScreen(token: token),
+                      ),
                     ),
-                  );
-                },
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
                   minimumSize: Size.zero,
@@ -467,12 +471,11 @@ class _AnnouncementCard extends StatelessWidget {
   }
 }
 
-// ================== BOTTOM NAVIGATION BAR MEJORADO ==================
-
 class _BottomNavBar extends StatefulWidget {
   final String userName;
+  final String? token;
 
-  const _BottomNavBar({required this.userName});
+  const _BottomNavBar({required this.userName, this.token});
 
   @override
   State<_BottomNavBar> createState() => _BottomNavBarState();
@@ -485,16 +488,18 @@ class _BottomNavBarState extends State<_BottomNavBar> {
     setState(() {
       _selectedIndex = index;
     });
-
     switch (index) {
       case 0:
-        // Ya estamos en el Dashboard
         break;
       case 1:
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => WatchmanQRScannerScreen(userName: widget.userName),
+            builder:
+                (_) => WatchmanQRScannerScreen(
+                  userName: widget.userName,
+                  token: widget.token,
+                ),
           ),
         );
         break;
@@ -502,7 +507,7 @@ class _BottomNavBarState extends State<_BottomNavBar> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => const WatchmanNotificationsScreen(),
+            builder: (_) => WatchmanAlertsScreen(token: widget.token),
           ),
         );
         break;
@@ -510,7 +515,11 @@ class _BottomNavBarState extends State<_BottomNavBar> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => WatchmanHistoryScreen(userName: widget.userName),
+            builder:
+                (_) => WatchmanHistoryScreen(
+                  userName: widget.userName,
+                  token: widget.token,
+                ),
           ),
         );
         break;
@@ -518,7 +527,11 @@ class _BottomNavBarState extends State<_BottomNavBar> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => WatchmanIncidentsScreen(userName: widget.userName),
+            builder:
+                (_) => WatchmanIncidentsScreen(
+                  userName: widget.userName,
+                  token: widget.token,
+                ),
           ),
         );
         break;

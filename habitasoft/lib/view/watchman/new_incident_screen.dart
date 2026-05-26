@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'incident_model.dart';
+import 'package:provider/provider.dart';
+import '../../models/incidente_model.dart';
+import '../../providers/incidente_provider.dart';
 
 class NewIncidentScreen extends StatefulWidget {
   final String userName;
+  final String? token;
 
-  const NewIncidentScreen({super.key, required this.userName});
+  const NewIncidentScreen({super.key, required this.userName, this.token});
 
   @override
   State<NewIncidentScreen> createState() => _NewIncidentScreenState();
@@ -14,47 +17,72 @@ class _NewIncidentScreenState extends State<NewIncidentScreen> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
+  final _titleController = TextEditingController();
 
   String _selectedType = 'Seguridad';
-  String _selectedPriority = 'Media';
+  String _selectedPriority = 'MEDIA';
 
   final List<String> _types = ['Seguridad', 'Mantenimiento', 'General'];
-  final List<String> _priorities = ['Alta', 'Media', 'Baja'];
+  final List<String> _priorities = ['ALTA', 'MEDIA', 'BAJA'];
 
   @override
   void dispose() {
     _descriptionController.dispose();
     _locationController.dispose();
+    _titleController.dispose();
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final newIncident = Incident(
-      id: 'inc_${DateTime.now().millisecondsSinceEpoch}',
-      condominiumId: 'cond_01',
-      reporterName: widget.userName,
-      reporterRole: 'guard',
-      type: _selectedType,
-      location: _locationController.text.trim(),
-      description: _descriptionController.text.trim(),
-      priority: _selectedPriority,
-      status: 'nuevo',
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+    final provider = context.read<IncidenteProvider>();
+    provider.setToken(widget.token);
+
+    final incidente = Incidente(
+      id: 0,
+      reportadoPorId: 0,
+      titulo: _titleController.text.trim(),
+      descripcion: _descriptionController.text.trim(),
+      tipo: _selectedType,
+      ubicacion: _locationController.text.trim(),
+      prioridad: _selectedPriority,
+      estado: 'nuevo',
     );
 
-    mockIncidents.insert(0, newIncident);
+    final success = await provider.crear(incidente);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Incidente creado exitosamente'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    if (!mounted) return;
 
-    Navigator.pop(context, newIncident);
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Incidente creado exitosamente'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context, true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.error ?? 'Error al crear incidente'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  String _priorityLabel(String p) {
+    switch (p) {
+      case 'ALTA':
+        return 'Alta';
+      case 'MEDIA':
+        return 'Media';
+      case 'BAJA':
+        return 'Baja';
+      default:
+        return p;
+    }
   }
 
   @override
@@ -72,7 +100,34 @@ class _NewIncidentScreenState extends State<NewIncidentScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Tipo
+              const Text(
+                'Título',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF333333),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _titleController,
+                decoration: InputDecoration(
+                  hintText: 'Ej: Intento de ingreso no autorizado',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 14,
+                  ),
+                ),
+                validator:
+                    (v) =>
+                        (v == null || v.trim().isEmpty)
+                            ? 'El título es obligatorio'
+                            : null,
+              ),
+              const SizedBox(height: 16),
               const Text(
                 'Tipo de Incidente',
                 style: TextStyle(
@@ -100,8 +155,6 @@ class _NewIncidentScreenState extends State<NewIncidentScreen> {
                 onChanged: (v) => setState(() => _selectedType = v!),
               ),
               const SizedBox(height: 16),
-
-              // Ubicación
               const Text(
                 'Ubicación',
                 style: TextStyle(
@@ -130,8 +183,6 @@ class _NewIncidentScreenState extends State<NewIncidentScreen> {
                             : null,
               ),
               const SizedBox(height: 16),
-
-              // Prioridad
               const Text(
                 'Prioridad',
                 style: TextStyle(
@@ -156,15 +207,12 @@ class _NewIncidentScreenState extends State<NewIncidentScreen> {
                     _priorities.map((p) {
                       Color color;
                       switch (p) {
-                        case 'Alta':
+                        case 'ALTA':
                           color = Colors.red;
-                          break;
-                        case 'Media':
+                        case 'MEDIA':
                           color = Colors.orange;
-                          break;
-                        case 'Baja':
+                        case 'BAJA':
                           color = Colors.blue;
-                          break;
                         default:
                           color = Colors.grey;
                       }
@@ -181,7 +229,7 @@ class _NewIncidentScreenState extends State<NewIncidentScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text(p),
+                            Text(_priorityLabel(p)),
                           ],
                         ),
                       );
@@ -189,8 +237,6 @@ class _NewIncidentScreenState extends State<NewIncidentScreen> {
                 onChanged: (v) => setState(() => _selectedPriority = v!),
               ),
               const SizedBox(height: 16),
-
-              // Descripción
               const Text(
                 'Descripción',
                 style: TextStyle(
@@ -216,61 +262,7 @@ class _NewIncidentScreenState extends State<NewIncidentScreen> {
                             ? 'La descripción es obligatoria'
                             : null,
               ),
-              const SizedBox(height: 24),
-
-              // Sección de adjuntos (placeholder)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[200]!),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.camera_alt_outlined,
-                        color: Colors.grey[600],
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Agregar Fotos',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF333333),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Toma una foto o selecciona de la galería',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right, color: Colors.grey),
-                  ],
-                ),
-              ),
               const SizedBox(height: 32),
-
-              // Botón guardar
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -292,7 +284,6 @@ class _NewIncidentScreenState extends State<NewIncidentScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 24),
             ],
           ),

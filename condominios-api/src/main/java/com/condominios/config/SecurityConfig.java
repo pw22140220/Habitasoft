@@ -61,13 +61,16 @@ public class SecurityConfig {
                     "/api/notificaciones/**",
                     "/api/reservaciones/**",
                     "/api/amenidades/**",
-                    "/api/incidentes/**",
                     "/api/pases-visita/**",
                     "/api/residente/**"
                 ).hasAnyRole("ADMINISTRADOR", "RESIDENTE")
 
                 .requestMatchers(
-                    "/api/guardia/alertas/**"
+                    "/api/incidentes/**"
+                ).hasAnyRole("ADMINISTRADOR", "GUARDIA")
+
+                .requestMatchers(
+                    "/api/guardia/**"
                 ).hasAnyRole("ADMINISTRADOR", "GUARDIA")
 
                 .anyRequest().authenticated()

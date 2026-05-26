@@ -160,7 +160,8 @@ CREATE TABLE Incidentes (
 
     reportado_por_id BIGINT  NOT NULL,
 
-    titulo VARCHAR(150),
+    titulo VARCHAR(150) NOT NULL,
+    prioridad ENUM('BAJA', 'MEDIA', 'ALTA') DEFAULT 'MEDIA',
 
     descripcion TEXT,
 
@@ -282,12 +283,27 @@ CREATE TABLE IF NOT EXISTS Anuncios (
     fecha_expiracion DATE NULL,
     activo BOOLEAN DEFAULT TRUE,
     destacado BOOLEAN DEFAULT FALSE,
+    destinatario ENUM('residentes', 'guardias', 'ambos') DEFAULT 'ambos',
     imagen_url VARCHAR(500) NULL,
     
     FOREIGN KEY (condominio_id) REFERENCES Condominios(id) ON DELETE CASCADE,
     FOREIGN KEY (creado_por_id) REFERENCES Usuarios(id) ON DELETE CASCADE
 );
-
+CREATE TABLE IF NOT EXISTS HistorialAccesos (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    pase_visita_id BIGINT NOT NULL,
+    guardia_id BIGINT NOT NULL,
+    residente_id BIGINT NOT NULL,
+    nombre_visitante VARCHAR(100) NOT NULL,
+    codigo_qr VARCHAR(255) NOT NULL,
+    fecha_acceso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    condominio_id BIGINT NOT NULL,
+    
+    FOREIGN KEY (pase_visita_id) REFERENCES PasesDeVisita(id) ON DELETE CASCADE,
+    FOREIGN KEY (guardia_id) REFERENCES Usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY (residente_id) REFERENCES Usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY (condominio_id) REFERENCES Condominios(id) ON DELETE CASCADE
+);
 
 -- =========================================
 -- CHECK CONSTRAINTS
@@ -382,6 +398,14 @@ CREATE INDEX idx_anuncios_condominio ON Anuncios(condominio_id);
 CREATE INDEX idx_anuncios_activo ON Anuncios(activo);
 CREATE INDEX idx_anuncios_destacado ON Anuncios(destacado);
 CREATE INDEX idx_anuncios_fecha_expiracion ON Anuncios(fecha_expiracion);
+
+-- HistorialAccesos
+CREATE INDEX idx_historial_condominio ON HistorialAccesos(condominio_id);
+CREATE INDEX idx_historial_guardia ON HistorialAccesos(guardia_id);
+CREATE INDEX idx_historial_fecha ON HistorialAccesos(fecha_acceso);
+-- Índice para filtrar por destinatario Anuncios 
+CREATE INDEX idx_anuncios_destinatario ON Anuncios(destinatario);
+
 -- =========================================
 -- VISTAS (VIEWS)
 -- =========================================

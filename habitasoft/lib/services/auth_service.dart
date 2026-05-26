@@ -44,6 +44,25 @@ class AuthService {
     return 1;
   }
 
+  static Future<int> obtenerCondominioIdGuardia(String? token) async {
+    final uri = Uri.parse('$_baseUrl/api/guardia/mi-condominio');
+    final response = await http
+        .get(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            if (token != null) 'Authorization': 'Bearer $token',
+          },
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return data['id'] as int;
+    }
+    return 1;
+  }
+
   // Devuelve LoginResponse con nombre y rol del usuario
   Future<LoginResponse> login(String email, String password) async {
     // Validación básica local

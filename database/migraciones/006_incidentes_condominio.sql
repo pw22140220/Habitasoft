@@ -1,0 +1,5 @@
+-- Migración 006: Ya aplicada directamente en BD
+-- ALTER TABLE Incidentes ADD COLUMN condominio_id INT,
+-- ADD FOREIGN KEY (condominio_id) REFERENCES Condominios(id);
+-- Nota: Esta migración ya fue ejecutada manualmente en la BD.
+-- El backend ya está preparado para usar la columna.

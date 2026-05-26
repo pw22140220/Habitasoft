@@ -1,6 +1,7 @@
 package com.condominios.dto;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class PaseDeVisitaResponse {
 
@@ -10,6 +11,7 @@ public class PaseDeVisitaResponse {
     private String codigoQr;
     private LocalDate fechaValidez;
     private String estado;
+    private LocalDateTime fechaCreacion;
 
     public PaseDeVisitaResponse() {}
 
@@ -30,4 +32,7 @@ public class PaseDeVisitaResponse {
 
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
+
+    public LocalDateTime getFechaCreacion() { return fechaCreacion; }
+    public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }
 }

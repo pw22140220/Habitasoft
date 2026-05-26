@@ -17,8 +17,7 @@ public interface ReservacionRepository extends JpaRepository<Reservacion, Long> 
     List<Reservacion> findByAmenidadIdAndEstadoNot(Long amenidadId, String estado);
 
     @Query("SELECT r FROM Reservacion r WHERE r.amenidadId = :amenidadId AND r.estado IN ('confirmada', 'pendiente') " +
-           "AND ((r.fechaHoraInicio BETWEEN :inicio AND :fin) OR (r.fechaHoraFin BETWEEN :inicio AND :fin) " +
-           "OR (:inicio BETWEEN r.fechaHoraInicio AND r.fechaHoraFin))")
+           "AND r.fechaHoraInicio < :fin AND :inicio < r.fechaHoraFin")
     List<Reservacion> findConflictos(@Param("amenidadId") Long amenidadId,
                                      @Param("inicio") LocalDateTime inicio,
                                      @Param("fin") LocalDateTime fin);

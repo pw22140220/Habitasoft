@@ -2,10 +2,13 @@ package com.condominios.controller;
 
 import com.condominios.dto.AlertaRequest;
 import com.condominios.dto.AlertaResponse;
+import com.condominios.model.GuardiaCondominio;
 import com.condominios.model.User;
+import com.condominios.repository.GuardiaCondominioRepository;
 import com.condominios.repository.UserRepository;
 import com.condominios.service.AlertaService;
 import jakarta.validation.Valid;
+import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -23,10 +26,13 @@ public class AlertaController {
 
     private final AlertaService alertaService;
     private final UserRepository userRepository;
+    private final GuardiaCondominioRepository guardiaCondominioRepository;
 
-    public AlertaController(AlertaService alertaService, UserRepository userRepository) {
+    public AlertaController(AlertaService alertaService, UserRepository userRepository,
+                            GuardiaCondominioRepository guardiaCondominioRepository) {
         this.alertaService = alertaService;
         this.userRepository = userRepository;
+        this.guardiaCondominioRepository = guardiaCondominioRepository;
     }
 
     @PostMapping("/api/admin/alertas")
@@ -85,5 +91,24 @@ public class AlertaController {
             @RequestParam(name = "condominioId") Long condominioId,
             @PageableDefault(size = 10) Pageable pageable) {
         return ResponseEntity.ok(alertaService.listarActivasPorCondominio(condominioId, pageable));
+    }
+
+    @GetMapping("/api/guardia/mi-condominio")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'GUARDIA')")
+    public ResponseEntity<Map<String, Object>> miCondominioGuardia() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        Long condominioId = guardiaCondominioRepository.findFirstByGuardiaId(user.getId())
+                .map(GuardiaCondominio::getCondominioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "El guardia no está asignado a ningún condominio"));
+
+        Map<String, Object> response = new java.util.HashMap<>();
+        response.put("id", condominioId);
+        response.put("nombre", "Condominio #" + condominioId);
+        return ResponseEntity.ok(response);
     }
 }

@@ -35,6 +35,7 @@ public class AnuncioService {
         anuncio.setActivo(request.getActivo() != null ? request.getActivo() : true);
         anuncio.setDestacado(request.getDestacado() != null ? request.getDestacado() : false);
         anuncio.setImagenUrl(request.getImagenUrl());
+        anuncio.setDestinatario(request.getDestinatario() != null ? request.getDestinatario() : "ambos");
         anuncio = anuncioRepository.save(anuncio);
         return toResponse(anuncio);
     }
@@ -61,6 +62,7 @@ public class AnuncioService {
         anuncio.setActivo(request.getActivo() != null ? request.getActivo() : anuncio.getActivo());
         anuncio.setDestacado(request.getDestacado() != null ? request.getDestacado() : anuncio.getDestacado());
         anuncio.setImagenUrl(request.getImagenUrl());
+        anuncio.setDestinatario(request.getDestinatario() != null ? request.getDestinatario() : anuncio.getDestinatario());
         anuncio = anuncioRepository.save(anuncio);
         return toResponse(anuncio);
     }
@@ -78,6 +80,16 @@ public class AnuncioService {
                 .map(this::toResponse);
     }
 
+    public Page<AnuncioResponse> listarActivosParaGuardias(Long condominioId, Pageable pageable) {
+        return anuncioRepository.findActivosParaGuardias(condominioId, LocalDate.now(), pageable)
+                .map(this::toResponse);
+    }
+
+    public Page<AnuncioResponse> listarActivosPorDestinatario(Long condominioId, String destinatario, Pageable pageable) {
+        return anuncioRepository.findActivosPorDestinatario(condominioId, LocalDate.now(), destinatario, pageable)
+                .map(this::toResponse);
+    }
+
     private AnuncioResponse toResponse(Anuncio anuncio) {
         AnuncioResponse response = new AnuncioResponse();
         response.setId(anuncio.getId());
@@ -90,6 +102,7 @@ public class AnuncioService {
         response.setActivo(anuncio.getActivo());
         response.setDestacado(anuncio.getDestacado());
         response.setImagenUrl(anuncio.getImagenUrl());
+        response.setDestinatario(anuncio.getDestinatario());
 
         userRepository.findById(anuncio.getCreadoPorId())
                 .ifPresent(u -> response.setCreadorNombre(u.getNombre()));

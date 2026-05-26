@@ -10,6 +10,7 @@ class Anuncio {
   final bool activo;
   final bool destacado;
   final String? imagenUrl;
+  final String destinatario;
 
   Anuncio({
     required this.id,
@@ -23,6 +24,7 @@ class Anuncio {
     required this.activo,
     required this.destacado,
     this.imagenUrl,
+    this.destinatario = 'ambos',
   });
 
   factory Anuncio.fromJson(Map<String, dynamic> json) {
@@ -38,6 +40,7 @@ class Anuncio {
       activo: json['activo'] as bool? ?? true,
       destacado: json['destacado'] as bool? ?? false,
       imagenUrl: json['imagenUrl'] as String?,
+      destinatario: json['destinatario'] as String? ?? 'ambos',
     );
   }
 
@@ -49,6 +52,7 @@ class Anuncio {
       'activo': activo,
       'destacado': destacado,
       if (imagenUrl != null) 'imagenUrl': imagenUrl,
+      'destinatario': destinatario,
     };
   }
 }

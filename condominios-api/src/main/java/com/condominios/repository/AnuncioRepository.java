@@ -19,8 +19,26 @@ public interface AnuncioRepository extends JpaRepository<Anuncio, Long> {
 
     @Query("SELECT a FROM Anuncio a WHERE a.condominioId = :condominioId AND a.activo = true " +
            "AND (a.fechaExpiracion IS NULL OR a.fechaExpiracion >= :hoy) " +
+           "AND (a.destinatario = 'residentes' OR a.destinatario = 'ambos') " +
            "ORDER BY a.destacado DESC, a.fechaCreacion DESC")
     Page<Anuncio> findActivosParaResidentes(@Param("condominioId") Long condominioId,
                                              @Param("hoy") LocalDate hoy,
                                              Pageable pageable);
+
+    @Query("SELECT a FROM Anuncio a WHERE a.condominioId = :condominioId AND a.activo = true " +
+           "AND (a.fechaExpiracion IS NULL OR a.fechaExpiracion >= :hoy) " +
+           "AND (a.destinatario = 'guardias' OR a.destinatario = 'ambos') " +
+           "ORDER BY a.destacado DESC, a.fechaCreacion DESC")
+    Page<Anuncio> findActivosParaGuardias(@Param("condominioId") Long condominioId,
+                                           @Param("hoy") LocalDate hoy,
+                                           Pageable pageable);
+
+    @Query("SELECT a FROM Anuncio a WHERE a.condominioId = :condominioId AND a.activo = true " +
+           "AND (a.fechaExpiracion IS NULL OR a.fechaExpiracion >= :hoy) " +
+           "AND (:destinatario = 'todos' OR a.destinatario = :destinatario OR a.destinatario = 'ambos') " +
+           "ORDER BY a.destacado DESC, a.fechaCreacion DESC")
+    Page<Anuncio> findActivosPorDestinatario(@Param("condominioId") Long condominioId,
+                                              @Param("hoy") LocalDate hoy,
+                                              @Param("destinatario") String destinatario,
+                                              Pageable pageable);
 }

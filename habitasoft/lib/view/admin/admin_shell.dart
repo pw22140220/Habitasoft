@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'admin_state.dart';
 import 'admin_dashboard_screen.dart';
-import 'admin_condominiums_screen.dart';
 import 'admin_alerts_screen.dart';
-import 'admin_reservations_screen.dart';
+import 'admin_incidents_screen.dart';
 import 'admin_profile_screen.dart';
+import 'admin_historial_screen.dart';
+import '../../providers/incidente_provider.dart';
 
-// Shell principal del administrador con navegación por tabs
 class AdminShell extends StatefulWidget {
   final String? accessToken;
 
@@ -19,6 +19,7 @@ class AdminShell extends StatefulWidget {
 
 class _AdminShellState extends State<AdminShell> {
   int _selectedIndex = 0;
+  int _incidentKey = 0;
 
   @override
   void initState() {
@@ -28,21 +29,29 @@ class _AdminShellState extends State<AdminShell> {
         final adminState = Provider.of<AdminState>(context, listen: false);
         adminState.setToken(widget.accessToken!);
         adminState.init();
+        final incidenteProvider = Provider.of<IncidenteProvider>(
+          context,
+          listen: false,
+        );
+        incidenteProvider.setToken(widget.accessToken);
       }
     });
   }
 
-  final List<Widget> _screens = [
+  List<Widget> get _screens => [
     const AdminDashboardScreen(),
-    const AdminCondominiumsScreen(),
-    const AdminReservationsScreen(),
     const AdminAlertsScreen(),
+    AdminIncidentsScreen(key: ValueKey('incidents_$_incidentKey')),
+    const AdminHistorialScreen(),
     const AdminProfileScreen(),
   ];
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      if (index == 4) {
+        _incidentKey++;
+      }
     });
   }
 
@@ -60,13 +69,16 @@ class _AdminShellState extends State<AdminShell> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.apartment),
-            label: 'Condominios',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.place), label: 'Amenidades'),
-          BottomNavigationBarItem(
             icon: Icon(Icons.notifications),
             label: 'Alertas',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.report),
+            label: 'Incidentes',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'Historial',
           ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
         ],
@@ -75,7 +87,6 @@ class _AdminShellState extends State<AdminShell> {
   }
 }
 
-// Widget para mostrar cuando no hay condominio seleccionado
 class NoCondominiumSelected extends StatelessWidget {
   const NoCondominiumSelected({super.key});
 
@@ -97,28 +108,9 @@ class NoCondominiumSelected extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Para continuar, selecciona un condominio de la lista',
+            'Para continuar, selecciona un condominio desde el Inicio',
             style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 30),
-          ElevatedButton(
-            onPressed: () {
-              // Navegar a la pantalla de condominios
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const AdminCondominiumsScreen(),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green[700],
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-            ),
-            child: const Text(
-              'Seleccionar Condominio',
-              style: TextStyle(color: Colors.white),
-            ),
           ),
         ],
       ),

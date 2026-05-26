@@ -12,6 +12,7 @@ class AdminAnunciosScreen extends StatefulWidget {
 
 class _AdminAnunciosScreenState extends State<AdminAnunciosScreen> {
   String _filtro = 'todos';
+  String _filtroDestinatario = 'todos';
 
   @override
   void initState() {
@@ -33,6 +34,25 @@ class _AdminAnunciosScreenState extends State<AdminAnunciosScreen> {
       anuncios = anuncios.where((a) => a.activo).toList();
     } else if (_filtro == 'destacados') {
       anuncios = anuncios.where((a) => a.destacado).toList();
+    }
+    if (_filtroDestinatario == 'residentes') {
+      anuncios =
+          anuncios
+              .where(
+                (a) =>
+                    a.destinatario == 'residentes' || a.destinatario == 'ambos',
+              )
+              .toList();
+    } else if (_filtroDestinatario == 'guardias') {
+      anuncios =
+          anuncios
+              .where(
+                (a) =>
+                    a.destinatario == 'guardias' || a.destinatario == 'ambos',
+              )
+              .toList();
+    } else if (_filtroDestinatario == 'ambos') {
+      anuncios = anuncios.where((a) => a.destinatario == 'ambos').toList();
     }
     anuncios.sort((a, b) {
       if (a.destacado != b.destacado) return b.destacado ? 1 : -1;
@@ -87,15 +107,51 @@ class _AdminAnunciosScreenState extends State<AdminAnunciosScreen> {
   Widget _buildFilterBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          _filterChip('Todos', 'todos'),
-          const SizedBox(width: 8),
-          _filterChip('Activos', 'activos'),
-          const SizedBox(width: 8),
-          _filterChip('Destacados', 'destacados'),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _filterChip('Todos', 'todos'),
+                const SizedBox(width: 8),
+                _filterChip('Activos', 'activos'),
+                const SizedBox(width: 8),
+                _filterChip('Destacados', 'destacados'),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _filterChipDestinatario('Todos', 'todos'),
+                const SizedBox(width: 8),
+                _filterChipDestinatario('Residentes', 'residentes'),
+                const SizedBox(width: 8),
+                _filterChipDestinatario('Guardias', 'guardias'),
+                const SizedBox(width: 8),
+                _filterChipDestinatario('Solo ambos', 'ambos'),
+              ],
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _filterChipDestinatario(String label, String value) {
+    final selected = _filtroDestinatario == value;
+    return ChoiceChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          color: selected ? Colors.white : Colors.grey[700],
+        ),
+      ),
+      selected: selected,
+      selectedColor: Colors.teal,
+      onSelected: (_) => setState(() => _filtroDestinatario = value),
     );
   }
 
@@ -213,6 +269,32 @@ class _AdminAnunciosScreenState extends State<AdminAnunciosScreen> {
                                   style: TextStyle(
                                     fontSize: 10,
                                     color: Colors.amber,
+                                  ),
+                                ),
+                              ),
+                            if (anuncio.destinatario != 'ambos')
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      anuncio.destinatario == 'guardias'
+                                          ? Colors.blue.withOpacity(0.15)
+                                          : Colors.orange.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  anuncio.destinatario == 'guardias'
+                                      ? 'Solo guardias'
+                                      : 'Solo residentes',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    color:
+                                        anuncio.destinatario == 'guardias'
+                                            ? Colors.blue[700]
+                                            : Colors.orange[700],
                                   ),
                                 ),
                               ),
@@ -360,6 +442,7 @@ class _AdminAnunciosScreenState extends State<AdminAnunciosScreen> {
     bool destacado = existente?.destacado ?? false;
     bool activo = existente?.activo ?? true;
     String? fechaExp = existente?.fechaExpiracion;
+    String destinatario = existente?.destinatario ?? 'ambos';
 
     showDialog(
       context: context,
@@ -437,6 +520,32 @@ class _AdminAnunciosScreenState extends State<AdminAnunciosScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: destinatario,
+                        decoration: const InputDecoration(
+                          labelText: 'Dirigido a',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.people),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'residentes',
+                            child: Text('Solo Residentes'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'guardias',
+                            child: Text('Solo Guardias'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'ambos',
+                            child: Text('Ambos'),
+                          ),
+                        ],
+                        onChanged: (v) {
+                          if (v != null) setDialogState(() => destinatario = v);
+                        },
+                      ),
+                      const SizedBox(height: 16),
                       InkWell(
                         onTap: () async {
                           final date = await showDatePicker(
@@ -509,6 +618,7 @@ class _AdminAnunciosScreenState extends State<AdminAnunciosScreen> {
                       'activo': activo,
                       'fechaExpiracion': fechaExp,
                       'imagenUrl': null,
+                      'destinatario': destinatario,
                     };
                     bool exito;
                     if (existente != null) {

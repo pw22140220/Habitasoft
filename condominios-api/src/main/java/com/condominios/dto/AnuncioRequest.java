@@ -19,6 +19,8 @@ public class AnuncioRequest {
 
     private String imagenUrl;
 
+    private String destinatario;
+
     public String getTitulo() {
         return titulo;
     }
@@ -65,5 +67,13 @@ public class AnuncioRequest {
 
     public void setImagenUrl(String imagenUrl) {
         this.imagenUrl = imagenUrl;
+    }
+
+    public String getDestinatario() {
+        return destinatario;
+    }
+
+    public void setDestinatario(String destinatario) {
+        this.destinatario = destinatario;
     }
 }

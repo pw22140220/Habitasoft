@@ -21,6 +21,7 @@ dependencies:
   shared_preferences: ^2.2.2  # para guardar preferencias locales (biometría, modo oscuro)
   provider: ^6.1.2  # para gestión de estado con ChangeNotifier
   qr_flutter: ^4.1.0  # para generar códigos QR
+  mobile_scanner: ^4.0.0  # para escanear códigos QR
 
 dev_dependencies:
   flutter_test:

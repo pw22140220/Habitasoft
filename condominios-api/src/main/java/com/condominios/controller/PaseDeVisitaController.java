@@ -2,6 +2,8 @@ package com.condominios.controller;
 
 import com.condominios.dto.PaseDeVisitaRequest;
 import com.condominios.dto.PaseDeVisitaResponse;
+import com.condominios.dto.ValidarQrRequest;
+import com.condominios.dto.ValidarQrResponse;
 import com.condominios.model.User;
 import com.condominios.repository.UserRepository;
 import com.condominios.service.PaseDeVisitaService;
@@ -54,5 +56,14 @@ public class PaseDeVisitaController {
         User residente = getAuthenticatedUser();
         return ResponseEntity.ok(
                 paseDeVisitaService.listarMisPases(residente.getId(), pageable));
+    }
+
+    @PostMapping("/api/guardia/validar-qr")
+    @PreAuthorize("hasAnyRole('GUARDIA', 'ADMINISTRADOR')")
+    public ResponseEntity<ValidarQrResponse> validarQr(
+            @Valid @RequestBody ValidarQrRequest request) {
+        User guardia = getAuthenticatedUser();
+        return ResponseEntity.ok(
+                paseDeVisitaService.validarQr(request, guardia.getId()));
     }
 }

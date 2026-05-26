@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'services/mock_backend_store.dart';
 import 'view/admin/admin_state.dart';
 import 'view/auth/home_screen.dart';
+import 'providers/incidente_provider.dart';
 
 class HabitasoftApp extends StatelessWidget {
   const HabitasoftApp({super.key});
@@ -13,6 +14,7 @@ class HabitasoftApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => MockBackendStore()),
         ChangeNotifierProvider(create: (_) => AdminState()),
+        ChangeNotifierProvider(create: (_) => IncidenteProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

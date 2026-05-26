@@ -134,4 +134,25 @@ class AlertaService {
       );
     }
   }
+
+  Future<List<Alerta>> listarActivasPorCondominioGuardia(
+    int condominioId,
+  ) async {
+    final uri = Uri.parse(
+      '$_baseUrl/api/guardia/alertas',
+    ).replace(queryParameters: {'condominioId': condominioId.toString()});
+    final response = await http
+        .get(uri, headers: _headers)
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> body = jsonDecode(response.body);
+      final List<dynamic> content = body['content'] as List<dynamic>;
+      return content.map((e) => Alerta.fromJson(e)).toList();
+    } else {
+      throw Exception(
+        'Error al listar alertas activas: ${response.statusCode}',
+      );
+    }
+  }
 }

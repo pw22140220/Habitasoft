@@ -1,37 +1,65 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../models/condominio_model.dart';
 import '../../models/historial_acceso_model.dart';
 import '../../services/historial_acceso_service.dart';
+import 'admin_state.dart';
 
-class WatchmanHistoryScreen extends StatefulWidget {
-  final String userName;
-  final String? token;
-
-  const WatchmanHistoryScreen({super.key, required this.userName, this.token});
+class AdminHistorialScreen extends StatefulWidget {
+  const AdminHistorialScreen({super.key});
 
   @override
-  State<WatchmanHistoryScreen> createState() => _WatchmanHistoryScreenState();
+  State<AdminHistorialScreen> createState() => _AdminHistorialScreenState();
 }
 
-class _WatchmanHistoryScreenState extends State<WatchmanHistoryScreen> {
-  late final HistorialAccesoService _historialService = HistorialAccesoService(
-    token: widget.token,
-  );
+class _AdminHistorialScreenState extends State<AdminHistorialScreen> {
+  final HistorialAccesoService _historialService = HistorialAccesoService();
   List<HistorialAcceso> _accesos = [];
   Map<String, dynamic>? _stats;
   bool _isLoading = true;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final adminState = Provider.of<AdminState>(context);
+    if (adminState.token != null) {
+      _initService(adminState);
+    }
+  }
+
+  void _initService(AdminState adminState) {
+    final token = adminState.token;
+    if (token == null) return;
+  }
+
+  @override
   void initState() {
     super.initState();
-    _cargarDatos();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _cargarDatos();
+    });
+  }
+
+  int? _getCondominioId() {
+    final adminState = Provider.of<AdminState>(context, listen: false);
+    final token = adminState.token;
+    return adminState.selectedCondominio?.id;
   }
 
   Future<void> _cargarDatos() async {
+    final adminState = Provider.of<AdminState>(context, listen: false);
+    final condominioId = adminState.selectedCondominio?.id;
+    if (condominioId == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
     setState(() => _isLoading = true);
+    final service = HistorialAccesoService(token: adminState.token);
     try {
       final results = await Future.wait([
-        _historialService.listarPorGuardia(),
-        _historialService.obtenerEstadisticasGuardia(),
+        service.listarPorAdmin(condominioId),
+        service.obtenerEstadisticasAdmin(condominioId),
       ]);
       setState(() {
         _accesos = results[0] as List<HistorialAcceso>;
@@ -52,13 +80,7 @@ class _WatchmanHistoryScreenState extends State<WatchmanHistoryScreen> {
     if (fechaStr == null) return '';
     try {
       final dt = DateTime.parse(fechaStr);
-      final now = DateTime.now();
-      final diff = now.difference(dt);
-      if (diff.inDays == 0)
-        return 'Hoy ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
-      if (diff.inDays == 1)
-        return 'Ayer ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
-      return '${dt.day}/${dt.month}/${dt.year}';
+      return '${dt.day}/${dt.month}/${dt.year} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
     } catch (_) {
       return fechaStr;
     }
@@ -66,11 +88,72 @@ class _WatchmanHistoryScreenState extends State<WatchmanHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final adminState = Provider.of<AdminState>(context);
+    final condominio = adminState.selectedCondominio;
+
+    if (condominio == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Historial de Accesos'),
+          backgroundColor: Colors.green[700],
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.apartment, size: 80, color: Colors.grey),
+              SizedBox(height: 20),
+              Text(
+                'Selecciona un condominio',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+              ),
+              SizedBox(height: 10),
+              Text(
+                'Para ver el historial de accesos',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Historial de Accesos'),
-        backgroundColor: const Color(0xFF15806C),
-        elevation: 0,
+        title: Text('Historial - ${condominio.nombre}'),
+        backgroundColor: Colors.green[700],
+        actions: [
+          PopupMenuButton<int>(
+            icon: const Icon(Icons.swap_horiz, color: Colors.white),
+            tooltip: 'Cambiar condominio',
+            onSelected: (value) {
+              final c = adminState.getCondominiumById(value);
+              if (c != null) {
+                adminState.selectCondominium(c);
+                _cargarDatos();
+              }
+            },
+            itemBuilder:
+                (context) =>
+                    adminState.condominios.map((c) {
+                      return PopupMenuItem(
+                        value: c.id,
+                        child: Row(
+                          children: [
+                            if (c.id == condominio.id)
+                              const Icon(
+                                Icons.check,
+                                size: 18,
+                                color: Colors.green,
+                              ),
+                            const SizedBox(width: 8),
+                            Text(c.nombre),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: _cargarDatos,
@@ -86,6 +169,16 @@ class _WatchmanHistoryScreenState extends State<WatchmanHistoryScreen> {
                         'Hoy',
                         _stats!['accesosHoy'].toString(),
                         Colors.blue,
+                      ),
+                      _buildStatCard(
+                        'Semana',
+                        _stats!['accesosSemana'].toString(),
+                        Colors.orange,
+                      ),
+                      _buildStatCard(
+                        'Mes',
+                        _stats!['accesosMes'].toString(),
+                        Colors.green,
                       ),
                     ],
                   ),
@@ -104,7 +197,7 @@ class _WatchmanHistoryScreenState extends State<WatchmanHistoryScreen> {
                       Icon(Icons.history, size: 64, color: Colors.grey),
                       SizedBox(height: 16),
                       Text(
-                        'No hay accesos registrados',
+                        'No hay accesos registrados en este condominio',
                         style: TextStyle(color: Colors.grey),
                       ),
                     ],
@@ -115,34 +208,17 @@ class _WatchmanHistoryScreenState extends State<WatchmanHistoryScreen> {
               SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final acceso = _accesos[index];
-                  return Container(
+                  return Card(
                     margin: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 4,
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[200]!),
-                    ),
                     child: ListTile(
-                      leading: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.arrow_forward,
-                          color: Colors.green,
-                          size: 22,
-                        ),
+                      leading: const Icon(
+                        Icons.arrow_forward,
+                        color: Colors.green,
                       ),
-                      title: Text(
-                        acceso.nombreVisitante,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
+                      title: Text(acceso.nombreVisitante),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -150,6 +226,8 @@ class _WatchmanHistoryScreenState extends State<WatchmanHistoryScreen> {
                             Text('Residente: ${acceso.residenteNombre}'),
                           if (acceso.unidadNumero != null)
                             Text('Unidad: ${acceso.unidadNumero}'),
+                          if (acceso.guardiaNombre != null)
+                            Text('Guardia: ${acceso.guardiaNombre}'),
                         ],
                       ),
                       trailing: Text(

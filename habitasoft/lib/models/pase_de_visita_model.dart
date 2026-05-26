@@ -5,6 +5,7 @@ class PaseDeVisita {
   final String? codigoQr;
   final String? fechaValidez;
   final String estado;
+  final String? fechaCreacion;
 
   PaseDeVisita({
     required this.id,
@@ -13,6 +14,7 @@ class PaseDeVisita {
     this.codigoQr,
     this.fechaValidez,
     required this.estado,
+    this.fechaCreacion,
   });
 
   factory PaseDeVisita.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class PaseDeVisita {
       codigoQr: json['codigoQr'] as String?,
       fechaValidez: json['fechaValidez'] as String?,
       estado: json['estado'] as String,
+      fechaCreacion: json['fechaCreacion'] as String?,
     );
   }
 

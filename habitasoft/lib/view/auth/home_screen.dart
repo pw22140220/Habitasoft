@@ -287,8 +287,10 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         MaterialPageRoute(
           builder:
-              (context) =>
-                  WatchmanDashboardScreen(userName: loginResponse.userName),
+              (context) => WatchmanDashboardScreen(
+                userName: loginResponse.userName,
+                token: loginResponse.accessToken,
+              ),
         ),
       );
     } else {

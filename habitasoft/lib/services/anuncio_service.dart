@@ -87,6 +87,23 @@ class AnuncioService {
     }
   }
 
+  Future<List<Anuncio>> listarGuardia(int condominioId) async {
+    final uri = Uri.parse('$_baseUrl/api/guardia/anuncios').replace(
+      queryParameters: {'condominioId': condominioId.toString(), 'size': '100'},
+    );
+    final response = await http
+        .get(uri, headers: _headers)
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> body = jsonDecode(response.body);
+      final List<dynamic> content = body['content'] as List<dynamic>;
+      return content.map((e) => Anuncio.fromJson(e)).toList();
+    } else {
+      throw Exception('Error al listar anuncios');
+    }
+  }
+
   String _extractError(String body) {
     try {
       final json = jsonDecode(body);

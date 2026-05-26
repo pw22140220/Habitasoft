@@ -3,7 +3,6 @@ package com.condominios.controller;
 import com.condominios.dto.AnuncioRequest;
 import com.condominios.dto.AnuncioResponse;
 import com.condominios.model.User;
-import com.condominios.repository.UserRepository;
 import com.condominios.service.AnuncioService;
 import com.condominios.service.UsuarioService;
 import jakarta.validation.Valid;
@@ -78,5 +77,16 @@ public class AnuncioController {
             @PageableDefault(size = 10) Pageable pageable) {
         return ResponseEntity.ok(
                 anuncioService.listarActivosParaResidentes(condominioId, pageable));
+    }
+
+    // ==================== GUARDIA ====================
+
+    @GetMapping("/api/guardia/anuncios")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'GUARDIA')")
+    public ResponseEntity<Page<AnuncioResponse>> listarGuardia(
+            @RequestParam("condominioId") Long condominioId,
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ResponseEntity.ok(
+                anuncioService.listarActivosParaGuardias(condominioId, pageable));
     }
 }

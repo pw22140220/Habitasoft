@@ -1,213 +1,362 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../models/validar_qr_response.dart';
+import '../../services/qr_service.dart';
 
-class WatchmanQRScannerScreen extends StatelessWidget {
+class WatchmanQRScannerScreen extends StatefulWidget {
   final String userName;
+  final String? token;
 
-  const WatchmanQRScannerScreen({super.key, required this.userName});
+  const WatchmanQRScannerScreen({
+    super.key,
+    required this.userName,
+    this.token,
+  });
+
+  @override
+  State<WatchmanQRScannerScreen> createState() =>
+      _WatchmanQRScannerScreenState();
+}
+
+class _WatchmanQRScannerScreenState extends State<WatchmanQRScannerScreen> {
+  final MobileScannerController _scannerController = MobileScannerController();
+  final List<_ScanResult> _recentScans = [];
+  bool _isProcessing = false;
+  bool _flashOn = false;
+
+  QrService get _service => QrService(token: widget.token);
+
+  @override
+  void dispose() {
+    _scannerController.dispose();
+    super.dispose();
+  }
+
+  void _onDetect(BarcodeCapture capture) {
+    if (_isProcessing) return;
+    final barcode = capture.barcodes.firstOrNull;
+    if (barcode?.rawValue == null) return;
+
+    _isProcessing = true;
+    _validarQR(barcode!.rawValue!);
+  }
+
+  Future<void> _validarQR(String codigoQr) async {
+    try {
+      final response = await _service.validarQR(codigoQr);
+      setState(() {
+        _recentScans.insert(
+          0,
+          _ScanResult(
+            nombreVisitante: response.nombreVisitante ?? '—',
+            unidad: response.unidad ?? '—',
+            residente: response.residenteNombre ?? '—',
+            valido: response.valido,
+            mensaje: response.mensaje,
+            timestamp: DateTime.now(),
+          ),
+        );
+      });
+      _showResultDialog(response);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      setState(() {
+        _recentScans.insert(
+          0,
+          _ScanResult(
+            nombreVisitante: '—',
+            unidad: '—',
+            residente: '—',
+            valido: false,
+            mensaje: errorMsg,
+            timestamp: DateTime.now(),
+          ),
+        );
+      });
+      _showErrorDialog(errorMsg);
+    }
+    _isProcessing = false;
+  }
+
+  void _showResultDialog(ValidarQrResponse response) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check_circle, size: 64, color: Colors.green[600]),
+                const SizedBox(height: 12),
+                const Text(
+                  'ACCESO PERMITIDO',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF333333),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _detailRow('Visitante', response.nombreVisitante ?? '—'),
+                      const SizedBox(height: 8),
+                      _detailRow('Residente', response.residenteNombre ?? '—'),
+                      const SizedBox(height: 8),
+                      _detailRow('Unidad', response.unidad ?? '—'),
+                      if (response.fechaValidez != null) ...[
+                        const SizedBox(height: 8),
+                        _detailRow('Válido hasta', response.fechaValidez!),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _scannerController.start();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF15806C),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Aceptar', style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showErrorDialog(String errorMsg) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.cancel, size: 64, color: Colors.red[600]),
+                const SizedBox(height: 12),
+                const Text(
+                  'ACCESO DENEGADO',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF333333),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  errorMsg,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+              ],
+            ),
+            actions: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _scannerController.start();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red[600],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Cerrar', style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF333333),
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
         title: const Text('Escanear QR'),
         backgroundColor: const Color(0xFF15806C),
+        foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(_flashOn ? Icons.flash_on : Icons.flash_off),
+            onPressed: () {
+              setState(() => _flashOn = !_flashOn);
+              _scannerController.toggleTorch();
+            },
+          ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final scannerHeight =
+              constraints.maxHeight < 600
+                  ? constraints.maxHeight * 0.35
+                  : 280.0;
+          return Column(
+            children: [
+              Container(
+                height: scannerHeight,
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    MobileScanner(
+                      controller: _scannerController,
+                      onDetect: _onDetect,
+                    ),
+                    _buildScanOverlay(scannerHeight),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Coloca el código QR dentro del marco',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF333333),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'El escáner detectará automáticamente',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: OutlinedButton.icon(
+                  onPressed: () => _showManualEntryDialog(context),
+                  icon: const Icon(Icons.keyboard),
+                  label: const Text('Ingresar código manualmente'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 44),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: BorderSide(color: Colors.green[700]!),
+                  ),
+                ),
+              ),
+              if (_recentScans.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Escaneos Recientes',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF333333),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => setState(() => _recentScans.clear()),
+                        child: const Text(
+                          'Limpiar',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: _recentScans.length,
+                  itemBuilder: (context, index) {
+                    final scan = _recentScans[index];
+                    return _ScanCard(scan: scan);
+                  },
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildScanOverlay(double parentHeight) {
+    final overlaySize = parentHeight * 0.75;
+    return Center(
+      child: Container(
+        width: overlaySize,
+        height: overlaySize,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white, width: 2),
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Información del vigilante
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.green[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green[100]!),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.green[700],
-                    child: const Icon(Icons.security, color: Colors.white),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Vigilante: $userName',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.green[800],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Turno: Diurno (6:00 AM - 6:00 PM)',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Área del escáner
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  // Icono del escáner
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: Colors.green[50],
-                      borderRadius: BorderRadius.circular(60),
-                      border: Border.all(color: Colors.green[200]!, width: 2),
-                    ),
-                    child: const Icon(
-                      Icons.qr_code_scanner,
-                      size: 60,
-                      color: Color(0xFF15806C),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Instrucciones
-                  const Text(
-                    'Posiciona el código QR dentro del área de escaneo',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF333333),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'El escáner detectará automáticamente el código',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Botón de escanear
-                  ElevatedButton(
-                    onPressed: () {
-                      _simulateQRScan(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF15806C),
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.qr_code_scanner, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text(
-                          'Iniciar Escaneo',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Botón para ingresar código manualmente
-                  OutlinedButton(
-                    onPressed: () {
-                      _showManualEntryDialog(context);
-                    },
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      side: BorderSide(color: Colors.green[700]!),
-                    ),
-                    child: const Text(
-                      'Ingresar Código Manualmente',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF15806C)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Historial reciente
-            const Text(
-              'Escaneos Recientes',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF333333),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            Expanded(
-              child: ListView(
-                children: [
-                  _buildRecentScan(
-                    name: 'Juan Pérez',
-                    department: '402',
-                    time: '14:30',
-                    status: 'Autorizado',
-                    statusColor: Colors.green,
-                  ),
-                  _buildRecentScan(
-                    name: 'María González',
-                    department: '305',
-                    time: '13:45',
-                    status: 'Autorizado',
-                    statusColor: Colors.green,
-                  ),
-                  _buildRecentScan(
-                    name: 'Carlos Rodríguez',
-                    department: '208',
-                    time: '12:20',
-                    status: 'Denegado',
-                    statusColor: Colors.red,
-                  ),
-                  _buildRecentScan(
-                    name: 'Ana Martínez',
-                    department: '101',
-                    time: '11:15',
-                    status: 'Autorizado',
-                    statusColor: Colors.green,
-                  ),
-                ],
-              ),
+            Icon(
+              Icons.qr_code_scanner,
+              size: 60,
+              color: Colors.white.withOpacity(0.8),
             ),
           ],
         ),
@@ -215,20 +364,83 @@ class WatchmanQRScannerScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentScan({
-    required String name,
-    required String department,
-    required String time,
-    required String status,
-    required Color statusColor,
-  }) {
+  void _showManualEntryDialog(BuildContext context) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Ingresar Código'),
+            content: TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                labelText: 'Código QR',
+                hintText: 'Pega o escribe el código',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  if (controller.text.trim().isNotEmpty) {
+                    _validarQR(controller.text.trim());
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF15806C),
+                ),
+                child: const Text('Validar'),
+              ),
+            ],
+          ),
+    );
+  }
+}
+
+class _ScanResult {
+  final String nombreVisitante;
+  final String unidad;
+  final String residente;
+  final bool valido;
+  final String mensaje;
+  final DateTime timestamp;
+
+  _ScanResult({
+    required this.nombreVisitante,
+    required this.unidad,
+    required this.residente,
+    required this.valido,
+    required this.mensaje,
+    required this.timestamp,
+  });
+}
+
+class _ScanCard extends StatelessWidget {
+  final _ScanResult scan;
+
+  const _ScanCard({required this.scan});
+
+  String _formatTime(DateTime dt) {
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = scan.valido ? Colors.green : Colors.red;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
         children: [
@@ -236,143 +448,63 @@ class WatchmanQRScannerScreen extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.green[50],
-              borderRadius: BorderRadius.circular(8),
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.person, color: Color(0xFF15806C), size: 20),
+            child: Icon(
+              scan.valido ? Icons.check_circle : Icons.cancel,
+              color: color,
+              size: 22,
+            ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
+                  scan.nombreVisitante,
                   style: const TextStyle(
+                    fontWeight: FontWeight.w600,
                     fontSize: 14,
-                    fontWeight: FontWeight.w500,
                     color: Color(0xFF333333),
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Departamento $department • $time',
+                  'Unidad ${scan.unidad} | ${scan.residente}',
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                fontSize: 12,
-                color: statusColor,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _simulateQRScan(BuildContext context) {
-    // Simular escaneo de QR
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('QR Escaneado'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const Text('Visitante: Luis Fernández'),
-              const Text('Departamento: 305'),
-              const Text('Hora de acceso: 15:45'),
-              const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.green[50],
-                  borderRadius: BorderRadius.circular(8),
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.green),
-                    SizedBox(width: 8),
-                    Text(
-                      'ACCESO AUTORIZADO',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cerrar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showManualEntryDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Ingresar Código Manualmente'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                decoration: InputDecoration(
-                  labelText: 'Código de acceso',
-                  hintText: 'Ej: ABC123-XYZ456',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                child: Text(
+                  scan.valido ? 'Válido' : 'Inválido',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: color,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Ingresa el código de 12 dígitos proporcionado por el residente',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+              const SizedBox(height: 4),
+              Text(
+                _formatTime(scan.timestamp),
+                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _simulateQRScan(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF15806C),
-              ),
-              child: const Text('Validar'),
-            ),
-          ],
-        );
-      },
+        ],
+      ),
     );
   }
 }

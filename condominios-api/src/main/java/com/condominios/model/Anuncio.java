@@ -40,6 +40,9 @@ public class Anuncio {
     @Column(name = "imagen_url", length = 500)
     private String imagenUrl;
 
+    @Column(name = "destinatario", length = 20)
+    private String destinatario = "ambos";
+
     public Anuncio() {}
 
     public Long getId() {
@@ -120,5 +123,13 @@ public class Anuncio {
 
     public void setImagenUrl(String imagenUrl) {
         this.imagenUrl = imagenUrl;
+    }
+
+    public String getDestinatario() {
+        return destinatario;
+    }
+
+    public void setDestinatario(String destinatario) {
+        this.destinatario = destinatario;
     }
 }
